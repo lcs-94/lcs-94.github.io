@@ -226,7 +226,7 @@ nav .live-n.on{display:flex}
   <!-- ① 홈 -->
   <div class="screen active" id="home">
     <div class="pagehead">
-      <div class="eyebrow">Sunday · 7월 5일</div>
+      <div class="eyebrow" id="todayLabel"></div>
       <h1>기록할 코트 선택</h1>
     </div>
     <div class="note">여러 코트에서 동시에 기록할 수 있습니다 · 25점제 / 최대 29점</div>
@@ -923,6 +923,15 @@ async function saveDirect(){
   document.getElementById('directToggleBtn').textContent='+ 결과 직접 입력';
   renderRecords(); renderDuo();
 }
+/* ================= 오늘 날짜 (한국 시간) ================= */
+function renderDate(){
+  const KST=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+  const days=['일','월','화','수','목','금','토'];
+  const el=document.getElementById('todayLabel');
+  if(el) el.textContent=days[KST.getDay()]+'요일 · '+(KST.getMonth()+1)+'월 '+KST.getDate()+'일';
+}
+renderDate();
+
 loadAll();
 
 /* PWA: 오프라인 캐시용 서비스 워커 */
