@@ -734,8 +734,8 @@ function renderDaily(){
   records.forEach(r=>{
     const day=r.d.split(' ')[0];
     if(!days[day]){days[day]={_total:0}; order.push(day);}
-    days[day]._total++;
-    r.a.concat(r.b).forEach(n=>{days[day][n]=(days[day][n]||0)+1;});
+    days[day]._total+=r.s.length;
+    r.a.concat(r.b).forEach(n=>{days[day][n]=(days[day][n]||0)+r.s.length;});
   });
   box.innerHTML=order.map(day=>{
     const d=days[day];
@@ -752,24 +752,28 @@ function renderRecords(){
   const box=document.getElementById('recList');
   document.getElementById('sampleNote').style.display='none';
   if(!records.length){box.innerHTML='<div class="empty">아직 기록이 없습니다.<br>코트를 선택해 첫 경기를 기록해보세요.</div>';return;}
-  box.innerHTML=records.map((r,i)=>{
-    const scs=r.s.map(s=>s[0]+':'+s[1]).join(' · ');
-    const mx=r.mx?` · 최다 연속 ${Math.max(...r.mx)}점`:'';
-    const sh=r.sh!=null?` · 셔틀 ${r.sh}개`:'';
-    const dr=r.w===-1?' · 무승부':'';
+  let html='';
+  records.forEach((r,i)=>{
     const ct=r.c?` · 코트 ${r.c}`:' · 직접 입력';
-    return `<div class="rec-row">
-      <div class="meta" style="display:flex;justify-content:space-between;align-items:center">
-        <span>${r.d}${ct}${sh}${mx}${dr}</span>
-        <button class="del" onclick="delRecord(${i})">✕</button>
-      </div>
-      <div class="line1">
-        <span class="pair ${r.w===0?'win':r.w===1?'lose':''}">${r.a.join('·')}${r.w===0?' ✓':''}</span>
-        <span style="color:#B9C2B4;font-size:11px">vs</span>
-        <span class="pair ${r.w===1?'win':r.w===0?'lose':''}">${r.b.join('·')}${r.w===1?' ✓':''}</span>
-        <span class="scs num">${scs}</span>
-      </div></div>`;
-  }).join('');
+    const isMulti=r.s.length>1;
+    r.s.forEach((sc,g)=>{
+      const gw=sc[0]>sc[1]?0:sc[0]<sc[1]?1:-1;
+      const glbl=isMulti?` · ${g+1}/${r.s.length}게임`:'';
+      const extra=g===0?(r.sh!=null?` · 셔틀 ${r.sh}개`:'')+(r.mx?` · 최다연속 ${Math.max(...r.mx)}점`:''):'';
+      html+=`<div class="rec-row" style="${g>0?'border-top:none;padding-top:3px':''}">
+        <div class="meta" style="display:flex;justify-content:space-between;align-items:center">
+          <span>${g===0?r.d+ct:''}${glbl}${extra}</span>
+          <button class="del" onclick="delRecord(${i})">✕</button>
+        </div>
+        <div class="line1">
+          <span class="pair ${gw===0?'win':gw===1?'lose':''}">${r.a.join('·')}${gw===0?' ✓':''}</span>
+          <span style="color:#B9C2B4;font-size:11px">vs</span>
+          <span class="pair ${gw===1?'win':gw===0?'lose':''}">${r.b.join('·')}${gw===1?' ✓':''}</span>
+          <span class="scs num">${sc[0]}:${sc[1]}</span>
+        </div></div>`;
+    });
+  });
+  box.innerHTML=html;
 }
 
 /* ================= 파트너 분석 ================= */
