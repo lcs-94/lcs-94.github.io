@@ -23,8 +23,11 @@ body{font-family:'Noto Sans KR',sans-serif;color:var(--ink);background:#DDE0D6;
 .phone{width:390px;max-width:100%;height:800px;background:var(--paper);border-radius:36px;
   overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(15,30,20,.35);
   display:flex;flex-direction:column;border:6px solid #101512}
-.statusbar{height:34px;display:flex;align-items:center;justify-content:space-between;
-  padding:0 22px;font-size:12px;font-weight:700;flex:none}
+/* 실제 모바일 기기에서는 전체화면 */
+@media (max-width:430px){
+  body{padding:0;background:var(--paper);align-items:stretch;}
+  .phone{width:100%;height:100dvh;border-radius:0;box-shadow:none;border:none;max-width:none;}
+}
 .screen{flex:1;overflow-y:auto;display:none;flex-direction:column}
 .screen.active{display:flex}
 .pagehead{padding:14px 20px 6px}
@@ -218,7 +221,6 @@ nav .live-n.on{display:flex}
 </head>
 <body>
 <div class="phone">
-  <div class="statusbar"><span>19:42</span><span>●●●&nbsp; ⏻ 92%</span></div>
 
   <!-- ① 홈 -->
   <div class="screen active" id="home">
@@ -395,18 +397,14 @@ async function stSet(k,v){
 }
 
 /* ===== 실시간 서버 동기화 (Firebase) — 설정을 붙여넣으면 자동 활성화 ===== */
-const FIREBASE_CONFIG = null;
-/* ↑ README.md 안내대로 Firebase 콘솔에서 복사한 설정을 붙여넣으세요. 예시:
 const FIREBASE_CONFIG = {
-  apiKey: "AIza....",
-  authDomain: "shuttlelog-xxxx.firebaseapp.com",
-  projectId: "shuttlelog-xxxx",
-  storageBucket: "shuttlelog-xxxx.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyA2ueitMgjdbJkjo31B5V42XCSU3eDhrEo",
+  authDomain: "badminton-score-f8a99.firebaseapp.com",
+  projectId: "badminton-score-f8a99",
+  storageBucket: "badminton-score-f8a99.firebasestorage.app",
+  messagingSenderId: "68394401750",
+  appId: "1:68394401750:web:f1b2640ef6a8d10d092e77"
 };
-설정하면 기록·회원이 서버에 실시간 저장되어 모든 기기에서 공유됩니다.
-null이면 기기별 저장(localStorage)으로 동작합니다. */
 let db=null, fbReady=false;
 try{
   if(FIREBASE_CONFIG && window.firebase){
@@ -414,7 +412,7 @@ try{
     db=firebase.firestore();
     db.enablePersistence({synchronizeTabs:true}).catch(()=>{}); // 오프라인 캐시
     fbReady=true;
-    document.querySelector('.statusbar span:last-child').textContent='● 실시간 동기화';
+    console.log('Firebase 실시간 동기화 활성화');
   }
 }catch(e){console.warn('Firebase 초기화 실패 — 기기 저장으로 동작',e);}
 
