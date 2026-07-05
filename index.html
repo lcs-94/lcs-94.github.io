@@ -240,12 +240,18 @@ nav .live-n.on{display:flex}
       <h1>선수 선택</h1>
     </div>
     <div class="card">
-      <div class="team-label">우리 팀 (화면 아래쪽)</div>
+      <div class="team-label" style="display:flex;align-items:center;justify-content:space-between;margin-top:0">
+        <span>우리 팀 (화면 아래쪽)</span>
+        <button onclick="swapSlots(0,1)" style="font-size:11px;padding:3px 9px;border:1.2px solid #C9CFBE;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;color:var(--ink-soft);font-family:inherit">⇄ 위치 변경</button>
+      </div>
       <div class="slot-grid">
         <div class="slot" id="sl0" onclick="selSlot(0)">선수 1</div>
         <div class="slot" id="sl1" onclick="selSlot(1)">선수 2</div>
       </div>
-      <div class="team-label">상대 팀 (화면 위쪽)</div>
+      <div class="team-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>상대 팀 (화면 위쪽)</span>
+        <button onclick="swapSlots(2,3)" style="font-size:11px;padding:3px 9px;border:1.2px solid #C9CFBE;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;color:var(--ink-soft);font-family:inherit">⇄ 위치 변경</button>
+      </div>
       <div class="slot-grid">
         <div class="slot" id="sl2" onclick="selSlot(2)">선수 1</div>
         <div class="slot" id="sl3" onclick="selSlot(3)">선수 2</div>
@@ -320,6 +326,13 @@ nav .live-n.on{display:flex}
       <div class="score-ctl" style="flex-wrap:wrap">
         <button onclick="undo()">← 실행취소</button>
         <button onclick="manualCourtChange()">🔄 코트 체인지</button>
+        <div id="shFinalRow" style="display:none;flex:1 0 100%;align-items:center;gap:10px;padding:4px 0">
+          <span style="color:var(--line);font-size:13px;font-weight:700">셔틀쾕 사용</span>
+          <button class="shbtn" onclick="shAdj(-1)">−</button>
+          <b class="num" id="shNFinal" style="color:var(--volt);font-size:18px;min-width:24px;text-align:center">0</b>
+          <button class="shbtn" onclick="shAdj(1)">+</button>
+          <span style="color:rgba(244,241,228,.6);font-size:12px">개</span>
+        </div>
         <button onclick="quitMatch()" style="flex:1 0 100%">경기 취소</button>
         <button class="volt" id="doneBtn" onclick="finishGo()" style="display:none;flex:1 0 100%">기록 저장 ✓</button>
       </div>
@@ -531,6 +544,7 @@ function tapCourt(i){
 
 /* ================= 경기 설정 ================= */
 function selSlot(i){activeSlot=i; if(slots[i]!==null){slots[i]=null;} renderSetup();}
+function swapSlots(a,b){[slots[a],slots[b]]=[slots[b],slots[a]]; renderSetup();}
 function pickMember(idx){
   slots[activeSlot]=idx;
   const next=slots.findIndex(s=>s===null);
@@ -539,6 +553,7 @@ function pickMember(idx){
 }
 function renderSetup(){
   const labels=['선수 1','선수 2','선수 1','선수 2'];
+  const activePlayers=new Set(Object.values(matches).flatMap(m=>m.teams.flat()));
   slots.forEach((s,i)=>{
     const el=document.getElementById('sl'+i);
     el.className='slot'+(s!==null?' filled':'')+(i===activeSlot?' on':'');
@@ -547,9 +562,11 @@ function renderSetup(){
       :labels[i];
   });
   const box=document.getElementById('pickChips');
-  box.innerHTML=members.length?members.map((m,i)=>
-    `<div class="mchip ${slots.includes(i)?'used':''}" onclick="pickMember(${i})">
-      ${m.n} <span class="badge ${clsG(m.g)}">${lblG(m.g)}</span></div>`).join('')
+  box.innerHTML=members.length?members.map((m,i)=>{
+    const inSlot=slots.includes(i);
+    const inMatch=!inSlot&&activePlayers.has(m.n);
+    return `<div class="mchip ${inSlot||inMatch?'used':''}" onclick="${inMatch?'':'pickMember('+i+')'}">\n      ${m.n} <span class="badge ${clsG(m.g)}">${lblG(m.g)}</span>${inMatch?'<small>경기중</small>':''}</div>`;
+  }).join('')
     :'<div class="empty" style="padding:8px">등록된 회원이 없습니다 — 회원 탭에서 먼저 추가하세요</div>';
   document.getElementById('startBtn').disabled=slots.includes(null);
 }
@@ -569,7 +586,9 @@ function renderOpts(){
 }
 function shAdj(d){const V=cur();if(!V)return;
   V.sh=Math.max(0,V.sh+d);
-  document.getElementById('shN').textContent=V.sh;}
+  document.getElementById('shN').textContent=V.sh;
+  const sfn=document.getElementById('shNFinal'); if(sfn)sfn.textContent=V.sh;
+}
 
 /* ================= 경기 진행 ================= */
 function startMatch(){
@@ -619,6 +638,7 @@ function undo(){
 }
 function quitMatch(){
   if(curCourt==null)return;
+  if(!confirm('코트 '+curCourt+' 경기를 취소할까요?'))return;
   delete matches[curCourt];
   const rest=activeCourts();
   curCourt=rest.length?rest[0]:null;
@@ -670,6 +690,8 @@ function renderScore(){
   el('deucePill').classList.toggle('on',V.deuce&&V.p[0]>=V.pts-1&&V.p[1]>=V.pts-1&&!V.over);
   el('shN').textContent=V.sh;
   el('doneBtn').style.display=V.over?'block':'none';
+  const sfr=el('shFinalRow'); if(sfr){sfr.style.display=V.over?'flex':'none';}
+  const sfn=el('shNFinal'); if(sfn)sfn.textContent=V.sh;
   [0,1].forEach(t=>{
     el('d'+t).innerHTML=Array.from({length:V.games},(x,i)=>`<i class="${i<V.sets[t]?'won':''}"></i>`).join('');
     el('d'+t).style.visibility=V.games>1?'visible':'hidden';
@@ -754,18 +776,18 @@ function renderDuo(){
       const k=[...pair].sort().join(' · ');
       const s=stats[k]=stats[k]||{w:0,l:0,pf:0,pa:0,sets:0,cw:0,cl:0,mx:0,form:[]};
       const win=r.w===side, drw=r.w===-1;
-      drw?(s.dr=(s.dr||0)+1):(win?s.w++:s.l++);
+      if(s.form.length<5)s.form.push(drw?'D':(win?'W':'L'));
       r.s.forEach(sc=>{
         s.pf+=sc[side]; s.pa+=sc[1-side]; s.sets++;
+        if(sc[side]>sc[1-side])s.w++; else if(sc[side]<sc[1-side])s.l++;
         if(Math.abs(sc[0]-sc[1])<=2){(sc[side]>sc[1-side])?s.cw++:s.cl++;}
       });
       if(r.mx&&r.mx[side]>s.mx)s.mx=r.mx[side];
-      if(s.form.length<5)s.form.push(drw?'D':(win?'W':'L'));
     });
   });
-  const list=Object.entries(stats).map(([k,v])=>({k,...v,n:v.w+v.l+(v.dr||0),
-    rate:Math.round(v.w/(v.w+v.l+(v.dr||0))*100),
-    apf:(v.pf/v.sets).toFixed(1), apa:(v.pa/v.sets).toFixed(1)}))
+  const list=Object.entries(stats).map(([k,v])=>({k,...v,n:v.w+v.l,
+    rate:Math.round(v.w/(v.w+v.l||1)*100),
+    apf:(v.pf/(v.sets||1)).toFixed(1), apa:(v.pa/(v.sets||1)).toFixed(1)}))
     .sort((a,b)=>b.rate-a.rate||b.n-a.n);
   const best=document.getElementById('bestDuo'), box=document.getElementById('duoList');
   if(!list.length){best.innerHTML='';
@@ -775,10 +797,10 @@ function renderDuo(){
     <div class="eyebrow">최고의 듀오</div>
     <div class="pair">${t.k}</div>
     <div class="rate num">${t.rate}%</div>
-    <div style="font-size:11px;opacity:.65">${t.n}전 ${t.w}승 ${t.l}패</div></div>`;
+    <div style="font-size:11px;opacity:.65">${t.n}게임 ${t.w}승 ${t.l}패</div></div>`;
   box.innerHTML=list.map(d=>`<div class="card duo-card">
     <div class="duo-head"><div class="nm">${d.k}</div>
-      <div class="rt">${d.rate}%<small>${d.w}승 ${d.l}패${d.dr?" "+d.dr+"무":""}</small></div></div>
+      <div class="rt">${d.rate}%<small>${d.w}승 ${d.l}패</small></div></div>
     <div class="bar"><i style="width:${d.rate}%"></i></div>
     <div class="duo-stats">
       <div class="dstat"><b>${d.apf}</b><span>평균 득점</span></div>
