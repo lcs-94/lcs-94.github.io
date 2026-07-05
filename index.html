@@ -1125,7 +1125,160 @@ function renderDate(){
   const el=document.getElementById('todayLabel');
   if(el) el.textContent=days[KST.getDay()]+'요일 · '+(KST.getMonth()+1)+'월 '+KST.getDate()+'일';
 }
-renderDate();
+/* ================= 진형 시뮬레이터 ================= */
+let rotPoss='our', rotShot=null, rotDir='straight';
+let rotFormOur='DEFENSE', rotFormOpp='DEFENSE';
+
+const ROT_SHOT_LIST=[
+  {id:'smash',n:'스매시'},{id:'drop',n:'드롭'},{id:'clear',n:'클리어'},
+  {id:'lob',n:'로브'},{id:'hairpin',n:'헤어핀'},{id:'drive',n:'드라이브'},{id:'push',n:'푸시'},
+];
+
+// viewBox="0 0 280 380", net at y=190
+const ROT_POS={
+  our:{
+    ATTACK:[{x:140,y:230},{x:140,y:348}],
+    DEFENSE:[{x:70,y:292},{x:210,y:292}],
+  },
+  opp:{
+    ATTACK:[{x:140,y:150},{x:140,y:32}],
+    DEFENSE:[{x:70,y:88},{x:210,y:88}],
+  }
+};
+
+const ROT_SIM_RULES={
+  smash:{
+    our:{ourF:'ATTACK', oppF:'DEFENSE',land:{x:140,y:58}, crLand:{x:210,y:58}, desc:'스매시 — 우리팀 앞뒤 공격 유지. 전위는 네트 압박, 후위는 스매시 후 중앙 이동. 상대팀 좌우 수비 전환.'},
+    opp:{ourF:'DEFENSE',oppF:'ATTACK', land:{x:140,y:322},crLand:{x:210,y:322},desc:'스매시 — 상대팀 앞뒤 공격. 우리팀 좌우 수비 전환. 좌우 균등 배치로 코트 커버.'},
+  },
+  drop:{
+    our:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:172},crLand:{x:210,y:172},desc:'드롭 — 우리팀 전위 네트 압박, 후위 중앙 대기. 상대 전위가 리프트 or 헤어핀 대응.'},
+    opp:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:208},crLand:{x:210,y:208},desc:'드롭 — 상대 전위 압박. 우리 전위가 리프트 or 헤어핀으로 대응. 양팀 앞뒤 유지.'},
+  },
+  clear:{
+    our:{ourF:'DEFENSE',oppF:'ATTACK', land:{x:140,y:22}, crLand:{x:210,y:22}, desc:'클리어 — 우리팀 좌우 수비 전환. 상대팀이 공격 기회를 얻어 앞뒤 진형으로 전환.'},
+    opp:{ourF:'ATTACK', oppF:'DEFENSE',land:{x:140,y:358},crLand:{x:210,y:358},desc:'클리어 — 우리 후위로 높은 공. 우리팀 앞뒤 공격 전환. 상대팀 좌우 수비.'},
+  },
+  lob:{
+    our:{ourF:'DEFENSE',oppF:'ATTACK', land:{x:140,y:22}, crLand:{x:210,y:22}, desc:'로브 — 우리팀 좌우 수비 전환. 상대 후위가 공격 기회. 수비 준비 필요.'},
+    opp:{ourF:'ATTACK', oppF:'DEFENSE',land:{x:140,y:358},crLand:{x:210,y:358},desc:'로브 — 우리 후위에게 높이 올림. 우리팀 앞뒤 공격 전환. 상대팀 수비.'},
+  },
+  hairpin:{
+    our:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:183},crLand:{x:210,y:183},desc:'헤어핀 — 양팀 전위 네트 교전. 후위는 리프트 대비 중앙 뒤쪽 대기.'},
+    opp:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:197},crLand:{x:210,y:197},desc:'헤어핀 — 양팀 전위 네트 교전. 후위는 리프트 대비 중앙 뒤쪽 대기.'},
+  },
+  drive:{
+    our:{ourF:'DEFENSE',oppF:'DEFENSE',land:{x:140,y:110},crLand:{x:210,y:110},desc:'드라이브 — 양팀 좌우 중립 진형. 빠른 수평 교환으로 반응 속도가 핵심.'},
+    opp:{ourF:'DEFENSE',oppF:'DEFENSE',land:{x:140,y:270},crLand:{x:210,y:270},desc:'드라이브 — 양팀 좌우 중립 진형. 빠른 수평 교환으로 반응 속도가 핵심.'},
+  },
+  push:{
+    our:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:175},crLand:{x:210,y:175},desc:'푸시 — 전위 공격적 네트 처리. 상대 전위 가로막기 or 리프트 대응.'},
+    opp:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:205},crLand:{x:210,y:205},desc:'푸시 — 상대 전위 공격. 우리 전위 가로막기 or 리프트 대응.'},
+  },
+};
+
+function setPoss(side){
+  rotPoss=side;
+  document.getElementById('rotPossOur').classList.toggle('on',side==='our');
+  document.getElementById('rotPossOpp').classList.toggle('on',side==='opp');
+  document.getElementById('rotTip').style.display='none';
+  document.getElementById('rotNextBtn').style.display='none';
+  renderRotCourt(null);
+}
+function setRotDir(dir){
+  rotDir=dir;
+  document.getElementById('rotDirStr').classList.toggle('on',dir==='straight');
+  document.getElementById('rotDirCrs').classList.toggle('on',dir==='cross');
+}
+function runSim(){
+  if(!rotShot){alert('샷을 선택해주세요');return;}
+  const r=ROT_SIM_RULES[rotShot][rotPoss];
+  const land=rotDir==='cross'?r.crLand:r.land;
+  const shotName=ROT_SHOT_LIST.find(s=>s.id===rotShot)?.n||rotShot;
+  const tip=document.getElementById('rotTip');
+  tip.style.display='block';
+  tip.innerHTML=`<b style="display:block;margin-bottom:4px">📌 ${shotName} (${rotDir==='straight'?'직선':'크로스'})</b>${r.desc}`;
+  const fmtNames={ATTACK:'앞뒤 (공격)',DEFENSE:'좌우 (수비)'};
+  document.getElementById('rotOurForm').textContent=fmtNames[r.ourF];
+  document.getElementById('rotOppForm').textContent=fmtNames[r.oppF];
+  renderRotCourt(land);
+  document.getElementById('rotNextBtn').style.display='block';
+  window._rotPending={ourF:r.ourF,oppF:r.oppF,nextPoss:rotPoss==='our'?'opp':'our'};
+}
+function applyRot(){
+  if(!window._rotPending)return;
+  rotFormOur=window._rotPending.ourF;
+  rotFormOpp=window._rotPending.oppF;
+  const nextPoss=window._rotPending.nextPoss;
+  window._rotPending=null;
+  rotShot=null;
+  document.getElementById('rotNextBtn').style.display='none';
+  document.getElementById('rotTip').style.display='none';
+  renderRotShotPicker();
+  setPoss(nextPoss);
+}
+function resetRot(){
+  rotPoss='our'; rotShot=null; rotDir='straight';
+  rotFormOur='DEFENSE'; rotFormOpp='DEFENSE';
+  window._rotPending=null;
+  document.getElementById('rotPossOur').classList.add('on');
+  document.getElementById('rotPossOpp').classList.remove('on');
+  document.getElementById('rotDirStr').classList.add('on');
+  document.getElementById('rotDirCrs').classList.remove('on');
+  document.getElementById('rotTip').style.display='none';
+  document.getElementById('rotNextBtn').style.display='none';
+  const fmtNames={ATTACK:'앞뒤 (공격)',DEFENSE:'좌우 (수비)'};
+  document.getElementById('rotOurForm').textContent=fmtNames['DEFENSE'];
+  document.getElementById('rotOppForm').textContent=fmtNames['DEFENSE'];
+  renderRotShotPicker();
+  renderRotCourt(null);
+}
+function renderRotShotPicker(){
+  const box=document.getElementById('rotShotPicker'); if(!box)return;
+  box.innerHTML=ROT_SHOT_LIST.map(s=>
+    `<button class="${rotShot===s.id?'on':''}" onclick="rotShot='${s.id}';renderRotShotPicker()">${s.n}</button>`
+  ).join('');
+}
+function renderRotCourt(shuttleLand){
+  const svg=document.getElementById('rotCourt'); if(!svg)return;
+  const ourPos=ROT_POS.our[rotFormOur];
+  const oppPos=ROT_POS.opp[rotFormOpp];
+  const ourActive=rotPoss==='our';
+  let s='';
+  s+='<rect x="0" y="0" width="280" height="380" fill="#0C4A32"/>';
+  s+='<rect x="10" y="10" width="260" height="360" fill="none" stroke="rgba(244,241,228,0.8)" stroke-width="1.2"/>';
+  s+='<line x1="38" y1="10" x2="38" y2="370" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
+  s+='<line x1="242" y1="10" x2="242" y2="370" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
+  s+='<line x1="10" y1="190" x2="270" y2="190" stroke="#F4F1E4" stroke-width="2.5"/>';
+  s+='<text x="273" y="194" fill="rgba(244,241,228,0.6)" font-size="8" font-family="sans-serif">N</text>';
+  s+='<line x1="140" y1="45" x2="140" y2="167" stroke="rgba(244,241,228,0.3)" stroke-width="0.8" stroke-dasharray="5,5"/>';
+  s+='<line x1="140" y1="213" x2="140" y2="335" stroke="rgba(244,241,228,0.3)" stroke-width="0.8" stroke-dasharray="5,5"/>';
+  s+='<line x1="10" y1="167" x2="270" y2="167" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
+  s+='<line x1="10" y1="213" x2="270" y2="213" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
+  s+='<line x1="10" y1="45" x2="270" y2="45" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
+  s+='<line x1="10" y1="335" x2="270" y2="335" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
+  s+='<text x="140" y="115" text-anchor="middle" fill="rgba(244,241,228,0.15)" font-size="16" font-family="sans-serif">상대팀</text>';
+  s+='<text x="140" y="280" text-anchor="middle" fill="rgba(244,241,228,0.15)" font-size="16" font-family="sans-serif">우리팀</text>';
+  const fmtLbl={ATTACK:'앞뒤',DEFENSE:'좌우'};
+  s+=`<text x="140" y="183" text-anchor="middle" fill="rgba(244,241,228,0.45)" font-size="8" font-family="sans-serif">${fmtLbl[rotFormOpp]}</text>`;
+  s+=`<text x="140" y="201" text-anchor="middle" fill="rgba(244,241,228,0.45)" font-size="8" font-family="sans-serif">${fmtLbl[rotFormOur]}</text>`;
+  ourPos.forEach((p,i)=>{
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="18" fill="${ourActive?'#D6F03C':'#3E7D5C'}" stroke="${ourActive?'#152019':'rgba(255,255,255,0.4)'}" stroke-width="2"/>`;
+    s+=`<text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="middle" fill="${ourActive?'#152019':'rgba(255,255,255,0.8)'}" font-size="11" font-weight="bold" font-family="sans-serif">${i===0?'나':'파'}</text>`;
+  });
+  oppPos.forEach((p,i)=>{
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="18" fill="${!ourActive?'#E05B4B':'rgba(224,91,75,0.5)'}" stroke="${!ourActive?'#fff':'rgba(255,255,255,0.25)'}" stroke-width="2"/>`;
+    s+=`<text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="11" font-weight="bold" font-family="sans-serif">${i===0?'적1':'적2'}</text>`;
+  });
+  const sh=shuttleLand||{x:140,y:190};
+  s+=`<circle cx="${sh.x}" cy="${sh.y}" r="9" fill="#fff" stroke="#D6F03C" stroke-width="2.5"/>`;
+  s+=`<circle cx="${sh.x}" cy="${sh.y}" r="4.5" fill="#D6F03C"/>`;
+  svg.innerHTML=s;
+}
+function renderRotAll(){
+  renderRotShotPicker();
+  renderRotCourt(null);
+}
 
 loadAll();
 
