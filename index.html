@@ -421,32 +421,18 @@ const PT_MIN=15, PT_MAX=30;
 const GRADES=['S','A','B','C','D','초심'], AGES=['10대','20대','30대','40대','50대+'];
 const clsG=g=>g==='초심'?'g-N':'g-'+g;
 const lblG=g=>g==='초심'?'초심':g+'조';
-let records=[], members=[], usingSample=false;
+let records=[], members=[];
 let selCourt=1, gamesN=1, pts=25, deuceOn=true, shuttles=4,
     regG='B', regA='30대', activeSlot=0, slots=[null,null,null,null];
-
-const sampleMembers=[
-  {n:'나',g:'B',a:'30대'},{n:'김상현',g:'A',a:'30대'},{n:'박준우',g:'B',a:'40대'},
-  {n:'이수민',g:'C',a:'20대'},{n:'정다혜',g:'C',a:'30대'},{n:'최영훈',g:'D',a:'50대+'},
-  {n:'서지원',g:'S',a:'20대'},{n:'홍민기',g:'초심',a:'40대'},
-];
-const sampleRecords=[
-  {d:'7/2 20:14',c:3,a:['나','김상현'],b:['박준우','이수민'],s:[[25,21]],w:0,mx:[6,3]},
-  {d:'7/2 20:41',c:3,a:['나','최영훈'],b:['김상현','정다혜'],s:[[19,25]],w:1,mx:[3,5]},
-  {d:'7/2 21:05',c:5,a:['나','김상현'],b:['최영훈','박준우'],s:[[29,28]],w:0,mx:[4,4]},
-  {d:'6/28 19:50',c:1,a:['나','정다혜'],b:['이수민','박준우'],s:[[25,17]],w:0,mx:[7,2]},
-  {d:'6/28 20:22',c:1,a:['나','김상현'],b:['정다혜','최영훈'],s:[[25,23]],w:0,mx:[4,3]},
-  {d:'6/28 21:00',c:2,a:['나','이수민'],b:['김상현','박준우'],s:[[22,25]],w:1,mx:[3,5]},
-];
 async function loadAll(){
   if(fbReady){
     // 서버 문서를 실시간 구독 — 다른 기기의 변경이 즉시 반영됨
     db.collection('shuttlelog').doc('records').onSnapshot(async s=>{
-      if(s.exists){records=JSON.parse(s.data().list); usingSample=false;}
+      if(s.exists){records=JSON.parse(s.data().list);}
       else{
-        const local=await stGet('bmt-records');           // 첫 연결: 기존 기기 데이터 서버로 이전
-        if(local){records=JSON.parse(local); usingSample=false; saveRecords();}
-        else{records=[...sampleRecords]; usingSample=true;}
+        const local=await stGet('bmt-records');
+        if(local){records=JSON.parse(local); saveRecords();}
+        else{records=[];}
       }
       renderAll();
     },e=>console.warn('records 구독 오류',e));
@@ -454,7 +440,7 @@ async function loadAll(){
       if(s.exists){members=JSON.parse(s.data().list);}
       else{
         const local=await stGet('bmt-members');
-        members=local?JSON.parse(local):[...sampleMembers];
+        members=local?JSON.parse(local):[];
         saveMembers();
       }
       renderAll();
@@ -462,9 +448,8 @@ async function loadAll(){
     return;
   }
   const r=await stGet('bmt-records'), m=await stGet('bmt-members');
-  if(r){records=JSON.parse(r); usingSample=false;}
-  else{records=[...sampleRecords]; usingSample=true;}
-  members=m?JSON.parse(m):[...sampleMembers];
+  records=r?JSON.parse(r):[];
+  members=m?JSON.parse(m):[];
   renderAll();
 }
 async function saveRecords(){
@@ -613,7 +598,7 @@ function quitMatch(){
 async function finishGo(){
   const V=cur(); if(!V||!V.over)return;
   if(!V.saved){
-    if(usingSample){records=[]; usingSample=false;}
+
     const now=new Date();
     records.unshift({d:(now.getMonth()+1)+'/'+now.getDate()+' '+
       String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
@@ -709,7 +694,7 @@ function renderDaily(){
 function renderRecords(){
   renderDaily();
   const box=document.getElementById('recList');
-  document.getElementById('sampleNote').style.display=usingSample?'block':'none';
+  document.getElementById('sampleNote').style.display='none';
   if(!records.length){box.innerHTML='<div class="empty">아직 기록이 없습니다.<br>코트를 선택해 첫 경기를 기록해보세요.</div>';return;}
   box.innerHTML=records.map(r=>{
     const scs=r.s.map(s=>s[0]+':'+s[1]).join(' · ');
