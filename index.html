@@ -327,10 +327,10 @@ nav .live-n.on{display:flex}
         <button onclick="undo()">← 실행취소</button>
         <button onclick="manualCourtChange()">🔄 코트 체인지</button>
         <div id="shFinalRow" style="display:none;flex:1 0 100%;align-items:center;gap:10px;padding:4px 0">
-          <span style="color:var(--line);font-size:13px;font-weight:700">셔틀쾕 사용</span>
-          <button class="shbtn" onclick="shAdj(-1)">−</button>
-          <b class="num" id="shNFinal" style="color:var(--volt);font-size:18px;min-width:24px;text-align:center">0</b>
-          <button class="shbtn" onclick="shAdj(1)">+</button>
+          <span style="color:var(--line);font-size:13px;font-weight:700">셔틀콕 사용</span>
+          <button style="width:36px;height:36px;border-radius:9px;border:1.5px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:18px;font-weight:700;cursor:pointer;flex:none" onclick="shAdj(-1)">−</button>
+          <b class="num" id="shNFinal" style="color:var(--volt);font-size:20px;min-width:28px;text-align:center">0</b>
+          <button style="width:36px;height:36px;border-radius:9px;border:1.5px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:18px;font-weight:700;cursor:pointer;flex:none" onclick="shAdj(1)">+</button>
           <span style="color:rgba(244,241,228,.6);font-size:12px">개</span>
         </div>
         <button onclick="quitMatch()" style="flex:1 0 100%">경기 취소</button>
