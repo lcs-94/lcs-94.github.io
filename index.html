@@ -353,6 +353,10 @@ nav .live-n.on{display:flex}
     <button class="btn" onclick="toggleDirect()" id="directToggleBtn" style="margin-top:4px">+ 결과 직접 입력</button>
     <div id="directForm" style="display:none">
       <div class="card">
+        <div class="team-label" style="margin-top:0">경기 날짜</div>
+        <input type="date" id="dDate" style="width:100%;padding:10px 12px;border:1.5px solid #E3E4DA;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;background:#FBFBF7;color:var(--ink)">
+      </div>
+      <div class="card">
         <div class="team-label" style="margin-top:0">우리 팀</div>
         <div class="slot-grid">
           <div class="slot" id="ds0" onclick="dSelSlot(0)">선수 1</div>
@@ -859,7 +863,14 @@ function toggleDirect(){
   directOpen=!directOpen;
   document.getElementById('directForm').style.display=directOpen?'block':'none';
   document.getElementById('directToggleBtn').textContent=directOpen?'✕ 닫기':'+ 결과 직접 입력';
-  if(directOpen){dSlots=[null,null,null,null];dActiveSlot=0;dGamesN=1;dScores=[[0,0]];renderDirect();}
+  if(directOpen){
+    dSlots=[null,null,null,null];dActiveSlot=0;dGamesN=1;dScores=[[0,0]];
+    // 기본값: 오늘 한국 날짜
+    const kst=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+    const y=kst.getFullYear(), m=String(kst.getMonth()+1).padStart(2,'0'), d=String(kst.getDate()).padStart(2,'0');
+    const di=document.getElementById('dDate'); if(di) di.value=`${y}-${m}-${d}`;
+    renderDirect();
+  }
 }
 function dSelSlot(i){dActiveSlot=i;if(dSlots[i]!==null){dSlots[i]=null;}renderDirect();}
 function dPickMember(idx){
@@ -911,9 +922,17 @@ async function saveDirect(){
   const wA=scores.filter(s=>s[0]>s[1]).length, wB=scores.filter(s=>s[1]>s[0]).length;
   const w=wA>wB?0:wB>wA?1:-1;
   const nm=i=>members[dSlots[i]].n;
-  const now=new Date();
+  const di=document.getElementById('dDate');
+  let dateStr;
+  if(di&&di.value){
+    const [y,mo,dd]=di.value.split('-').map(Number);
+    dateStr=`${mo}/${dd}`;
+  } else {
+    const now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+    dateStr=`${now.getMonth()+1}/${now.getDate()}`;
+  }
   records.unshift({
-    d:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
+    d:dateStr,
     c:0,a:[nm(0),nm(1)],b:[nm(2),nm(3)],s:scores,w,mx:[0,0]
   });
   await saveRecords();
