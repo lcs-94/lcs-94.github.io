@@ -438,7 +438,7 @@ nav .live-n.on{display:flex}
       <h1>분석</h1>
     </div>
     <div id="duoPlayerChips" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
-    <div id="duoTabBar" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px"></div>
+    <div id="duoTabBar" style="display:flex;gap:8px;margin-bottom:10px"></div>
     <div id="duoTabContent"></div>
   </div>
 
@@ -861,7 +861,7 @@ function renderDuo(){
   const tabBar=document.getElementById('duoTabBar');
   if(tabBar)tabBar.innerHTML=[['pair','파트너'],['stat','선수 득실']].map(([t,l])=>{
     const on=duoTab===t;
-    return `<button onclick="setDuoTab('${t}')" style="padding:7px 4px;border-radius:20px;border:1.5px solid ${on?'var(--court)':'#E3E4DA'};background:${on?'var(--court)':'transparent'};color:${on?'#fff':'var(--ink-soft)'};font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">${l}</button>`;
+    return `<button onclick="setDuoTab('${t}')" style="padding:7px 20px;border-radius:20px;border:1.5px solid ${on?'var(--court)':'#E3E4DA'};background:${on?'var(--court)':'transparent'};color:${on?'#fff':'var(--ink-soft)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">${l}</button>`;
   }).join('');
   const content=document.getElementById('duoTabContent');
   if(!content)return;
