@@ -293,8 +293,8 @@ nav .live-n.on{display:flex}
       <div class="courtview">
         <div class="half top" onclick="point(1)">
           <div class="pboxes">
-            <div class="pbox" onclick="event.stopPropagation();pointPlayer(1,0)" style="cursor:pointer"><div class="pn" id="pn10">—</div><span class="role" id="rl10"></span></div>
-            <div class="pbox" onclick="event.stopPropagation();pointPlayer(1,1)" style="cursor:pointer"><div class="pn" id="pn11">—</div><span class="role" id="rl11"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointSlot('10')" style="cursor:pointer"><div class="pn" id="pn10">—</div><span class="role" id="rl10"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointSlot('11')" style="cursor:pointer"><div class="pn" id="pn11">—</div><span class="role" id="rl11"></span></div>
           </div>
           <div class="scwrap"><div class="sc num" id="p1">0</div>
             <div class="setdots" id="d1"><i></i><i></i></div>
@@ -315,8 +315,8 @@ nav .live-n.on{display:flex}
             <div class="sc num" id="p0">0</div>
             <div class="setdots" id="d0"><i></i><i></i></div></div>
           <div class="pboxes">
-            <div class="pbox" onclick="event.stopPropagation();pointPlayer(0,0)" style="cursor:pointer"><div class="pn" id="pn00">—</div><span class="role" id="rl00"></span></div>
-            <div class="pbox" onclick="event.stopPropagation();pointPlayer(0,1)" style="cursor:pointer"><div class="pn" id="pn01">—</div><span class="role" id="rl01"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointSlot('00')" style="cursor:pointer"><div class="pn" id="pn00">—</div><span class="role" id="rl00"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointSlot('01')" style="cursor:pointer"><div class="pn" id="pn01">—</div><span class="role" id="rl01"></span></div>
           </div>
         </div>
         <div class="toast" id="toast"></div>
@@ -362,10 +362,10 @@ nav .live-n.on{display:flex}
     </div>
     <div class="note" id="sampleNote" style="display:none">아래는 예시 데이터입니다 — 경기를 기록하면 대체됩니다</div>
     <!-- 필터 탭 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:8px 0 4px">
-      <button id="rtab-all"        onclick="setRecFilter('all')"        style="padding:7px 4px;border-radius:20px;border:1.5px solid var(--court);background:var(--court);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center">전체</button>
-      <button id="rtab-normal"     onclick="setRecFilter('normal')"     style="padding:7px 4px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center">일반</button>
-      <button id="rtab-tournament" onclick="setRecFilter('tournament')" style="padding:7px 4px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center">대회</button>
+    <div style="display:flex;gap:8px;padding:8px 0 4px">
+      <button id="rtab-all"        onclick="setRecFilter('all')"        style="padding:7px 18px;border-radius:20px;border:1.5px solid var(--court);background:var(--court);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">전체</button>
+      <button id="rtab-normal"     onclick="setRecFilter('normal')"     style="padding:7px 18px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">일반</button>
+      <button id="rtab-tournament" onclick="setRecFilter('tournament')" style="padding:7px 18px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">대회</button>
     </div>
     <button class="btn" onclick="toggleDirect()" id="directToggleBtn" style="margin-top:4px">+ 결과 직접 입력</button>
     <div id="directForm" style="display:none">
@@ -1134,6 +1134,13 @@ function showPointLog(team){
   renderLogOverlay();
 }
 function pointPlayer(team,pi){pendingPlayer=pi;point(team);}
+function pointSlot(key){
+  const V=cur(); if(!V||V.over)return;
+  const posMap={'00':V.pos[0][1],'01':V.pos[0][0],'10':V.pos[1][0],'11':V.pos[1][1]};
+  const team=+key[0];
+  pendingPlayer=posMap[key];
+  point(team);
+}
 function renderLogOverlay(){
   const V=cur(); if(!V)return;
   const isOur=logState.team===0;
