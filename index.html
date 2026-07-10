@@ -272,12 +272,7 @@ nav .live-n.on{display:flex}
           <button id="dcOff" onclick="setDeuce(false)">듀스 없음</button>
         </div>
       </div>
-      <div class="team-label">셔틀콕 <span style="font-weight:500;color:var(--ink-soft)">(기본 4개 · 각자 1개)</span></div>
-      <div class="opt-line">
-        <button class="stp" onclick="adjSh(-1)">−</button>
-        <b class="num stp-val" id="shVal">4</b><span class="stp-unit">개</span>
-        <button class="stp" onclick="adjSh(1)">+</button>
-      </div>      <div class="team-label">코트 체인지</div>
+      <div class="team-label">코트 체인지</div>
       <div class="fmt-row" id="ccRow"></div>
       <div class="team-label">경기 유형</div>
       <div class="fmt-row" id="matchTypeRow"></div>
@@ -292,7 +287,7 @@ nav .live-n.on{display:flex}
       <div class="score-top">
         <span class="st" id="setLabel">—</span>
         <span class="pill" id="deucePill">듀스</span>
-        <span class="st">🏸<b class="num" id="shN" style="margin:0 3px">4</b><button class="shbtn" onclick="shAdj(-1)">−</button><button class="shbtn" onclick="shAdj(1)">+</button></span>
+
         <span class="st" id="scCourt">—</span>
       </div>
       <div class="courtview">
@@ -329,13 +324,7 @@ nav .live-n.on{display:flex}
       <div class="score-ctl" style="flex-wrap:wrap">
         <button onclick="undo()">← 실행취소</button>
         <button onclick="manualCourtChange()">🔄 코트 체인지</button>
-        <div id="shFinalRow" style="display:none;flex:1 0 100%;align-items:center;gap:10px;padding:4px 0">
-          <span style="color:var(--line);font-size:13px;font-weight:700">셔틀콕 사용</span>
-          <button style="width:36px;height:36px;border-radius:9px;border:1.5px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:18px;font-weight:700;cursor:pointer;flex:none" onclick="shAdj(-1)">−</button>
-          <b class="num" id="shNFinal" style="color:var(--volt);font-size:20px;min-width:28px;text-align:center">0</b>
-          <button style="width:36px;height:36px;border-radius:9px;border:1.5px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:18px;font-weight:700;cursor:pointer;flex:none" onclick="shAdj(1)">+</button>
-          <span style="color:rgba(244,241,228,.6);font-size:12px">개</span>
-        </div>
+
         <button onclick="quitMatch()" style="flex:1 0 100%">경기 취소</button>
         <button class="volt" id="doneBtn" onclick="finishGo()" style="display:none;flex:1 0 100%">기록 저장 ✓</button>
       </div>
@@ -525,7 +514,7 @@ const GRADES=['S','A','B','C','D','초심'], AGES=['10대','20대','30대','40�
 const clsG=g=>g==='초심'?'g-N':'g-'+g;
 const lblG=g=>g==='초심'?'초심':g+'조';
 let records=[], members=[];
-let selCourt=1, gamesN=1, pts=25, deuceOn=true, shuttles=4, courtChangeAt=0,
+let selCourt=1, gamesN=1, pts=25, deuceOn=true, courtChangeAt=0,
     regG='B', regA='30대', activeSlot=0, slots=[null,null,null,null];
 let directOpen=false, dSlots=[null,null,null,null], dActiveSlot=0, dGamesN=1, dScores=[[0,0]];
 async function loadAll(){
@@ -639,12 +628,11 @@ function renderSetup(){
 function setGames(n){gamesN=n;renderOpts();}
 function adjPts(d){pts=Math.min(PT_MAX,Math.max(PT_MIN,pts+d));renderOpts();}
 function setDeuce(b){deuceOn=b;renderOpts();}
-function adjSh(d){shuttles=Math.max(0,shuttles+d);renderOpts();}
+
 function renderOpts(){
   document.getElementById('gamesRow').innerHTML=[1,2,3].map(n=>
     `<button class="${gamesN===n?'on':''}" onclick="setGames(${n})">${n}게임</button>`).join('');
   document.getElementById('ptsVal').textContent=pts;
-  document.getElementById('shVal').textContent=shuttles;
   document.getElementById('dcOn').classList.toggle('on',deuceOn);
   document.getElementById('dcOff').classList.toggle('on',!deuceOn);
   document.getElementById('ccRow').innerHTML=[{v:0,l:'없음'},{v:13,l:'13점 시'}]
@@ -652,16 +640,12 @@ function renderOpts(){
   const mtr=document.getElementById('matchTypeRow');
   if(mtr)mtr.innerHTML=[{v:'normal',l:'일반'},{v:'tournament',l:'대회'}].map(o=>`<button class="${matchType===o.v?'on':''}" onclick="setMatchType('${o.v}')">${o.l}</button>`).join('');
 }
-function shAdj(d){const V=cur();if(!V)return;
-  V.sh=Math.max(0,V.sh+d);
-  document.getElementById('shN').textContent=V.sh;
-  const sfn=document.getElementById('shNFinal'); if(sfn)sfn.textContent=V.sh;
-}
+
 
 /* ================= 경기 진행 ================= */
 function startMatch(){
   const nm=i=>members[slots[i]].n;
-  matches[selCourt]={court:selCourt,games:gamesN,pts,deuce:deuceOn,cap:pts+4,sh:shuttles,
+  matches[selCourt]={court:selCourt,games:gamesN,pts,deuce:deuceOn,cap:pts+4,
     ccAt:courtChangeAt,matchType,shuttleNo:1,pointLog:[],
     teams:[[nm(0),nm(1)],[nm(2),nm(3)]],
     p:[0,0],sets:[0,0],setNo:1,setScores:[],serveTeam:0,pos:[[0,1],[0,1]],
@@ -725,7 +709,7 @@ async function finishGo(){
     records.unshift({d:(now.getMonth()+1)+'/'+now.getDate()+' '+
       String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
       c:V.court,a:V.teams[0],b:V.teams[1],s:V.setScores,
-      w:V.sets[0]===V.sets[1]?-1:(V.sets[0]>V.sets[1]?0:1),mx:[...V.mx],sh:V.sh,
+      w:V.sets[0]===V.sets[1]?-1:(V.sets[0]>V.sets[1]?0:1),mx:[...V.mx],
       type:V.matchType||'normal',plog:V.pointLog||[]});
     V.saved=true; await saveRecords();
   }
@@ -761,10 +745,9 @@ function renderScore(){
   el('setLabel').textContent=V.over?'경기 종료':
     (V.games===1?'단판':V.setNo+'게임 / '+V.games+'게임')+' · '+V.pts+'점'+(V.deuce?'':' (듀스 없음)');
   el('deucePill').classList.toggle('on',V.deuce&&V.p[0]>=V.pts-1&&V.p[1]>=V.pts-1&&!V.over);
-  el('shN').textContent=V.sh;
+
   el('doneBtn').style.display=V.over?'block':'none';
-  const sfr=el('shFinalRow'); if(sfr){sfr.style.display=V.over?'flex':'none';}
-  const sfn=el('shNFinal'); if(sfn)sfn.textContent=V.sh;
+
   [0,1].forEach(t=>{
     el('d'+t).innerHTML=Array.from({length:V.games},(x,i)=>`<i class="${i<V.sets[t]?'won':''}"></i>`).join('');
     el('d'+t).style.visibility=V.games>1?'visible':'hidden';
@@ -840,7 +823,7 @@ function renderRecords(){
     r.s.forEach((sc,g)=>{
       const gw=sc[0]>sc[1]?0:sc[0]<sc[1]?1:-1;
       const glbl=isMulti?` · ${g+1}/${r.s.length}게임`:'';
-      const extra=g===0?(r.sh!=null?` · 셔틀 ${r.sh}개`:'')+(r.mx?` · 최다연속 ${Math.max(...r.mx)}점`:''):'';
+      const extra=g===0?(r.mx?` · 최다연속 ${Math.max(...r.mx)}점`:''):'';
       const typeBadge=g===0&&r.type==='tournament'?' <span style="background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:2px 6px;border-radius:8px">대회</span>':'';
       const editBtn=g===0?`<button onclick="openEditOverlay(${i})" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1.2px solid rgba(0,0,0,.15);background:${hasPlog?'var(--volt)':'transparent'};color:${hasPlog?'var(--ink)':'var(--ink-soft)'};font-family:inherit;font-weight:700;cursor:pointer;margin-left:4px">${hasPlog?'📊 편집':'+ 샷 기록'}</button>`:'';
       html+=`<div class="rec-row" style="${g>0?'border-top:none;padding-top:3px':''}">
