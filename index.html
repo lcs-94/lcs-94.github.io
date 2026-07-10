@@ -355,11 +355,11 @@ nav .live-n.on{display:flex}
       <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">샷 종류</div>
       <div id="logShotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <span style="color:rgba(244,241,228,.7);font-size:12px;font-weight:700">셔틀콕</span>
+        <span style="color:rgba(244,241,228,.7);font-size:12px;font-weight:700">구</span>
         <button onclick="logShNo(-1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">−</button>
         <b id="logShN" class="num" style="color:var(--volt);font-size:18px;min-width:22px;text-align:center">1</b>
         <button onclick="logShNo(1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">+</button>
-        <span style="color:rgba(244,241,228,.5);font-size:11px">번째 셔틀콕</span>
+        <span style="color:rgba(244,241,228,.5);font-size:11px">번째</span>
       </div>
       <button id="logSaveBtn" onclick="saveLog()" disabled style="width:100%;padding:13px;border:none;border-radius:11px;background:var(--volt);color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;opacity:0.4;margin-bottom:14px">기록 완료 ✓</button>
     </div>
@@ -372,6 +372,12 @@ nav .live-n.on{display:flex}
       <h1>경기 기록</h1>
     </div>
     <div class="note" id="sampleNote" style="display:none">아래는 예시 데이터입니다 — 경기를 기록하면 대체됩니다</div>
+    <!-- 필터 탭 -->
+    <div style="display:flex;gap:6px;padding:8px 0 4px">
+      <button id="rtab-all"   onclick="setRecFilter('all')"        style="flex:1;padding:7px 0;border-radius:20px;border:1.5px solid var(--court);background:var(--court);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">전체</button>
+      <button id="rtab-normal" onclick="setRecFilter('normal')"   style="flex:1;padding:7px 0;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">일반</button>
+      <button id="rtab-tournament" onclick="setRecFilter('tournament')" style="flex:1;padding:7px 0;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">대회</button>
+    </div>
     <button class="btn" onclick="toggleDirect()" id="directToggleBtn" style="margin-top:4px">+ 결과 직접 입력</button>
     <div id="directForm" style="display:none">
       <div class="card">
@@ -402,6 +408,38 @@ nav .live-n.on{display:flex}
     <div class="card" id="dailyList"></div>
     <div class="section-t">경기 목록</div>
     <div class="card" id="recList"></div>
+
+    <!-- 샷 기록 편집 오버레이 -->
+    <div id="editOverlay" style="display:none;position:fixed;inset:0;background:var(--court-deep);z-index:30;flex-direction:column;overflow-y:auto;padding:14px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div id="editTitle" style="color:var(--volt);font-size:15px;font-weight:900">📋 샷 기록 편집</div>
+        <button onclick="closeEditOverlay()" style="font-size:14px;font-weight:700;color:rgba(244,241,228,.6);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px">✕ 닫기</button>
+      </div>
+      <div id="editPointList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:80px"></div>
+      <!-- 포인트별 편집 패널 -->
+      <div id="editPointPanel" style="display:none;position:fixed;inset:0;background:var(--court-deep);z-index:40;flex-direction:column;overflow-y:auto;padding:14px 16px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div id="editPanelTitle" style="color:var(--volt);font-size:14px;font-weight:900">점수 편집</div>
+          <button onclick="closeEditPanel()" style="font-size:12px;color:rgba(244,241,228,.6);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px">← 목록</button>
+        </div>
+        <div id="editPanelTypeBar" style="font-size:11px;font-weight:700;color:rgba(244,241,228,.6);margin-bottom:10px"></div>
+        <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">득점 선수</div>
+        <div id="editPanelPlayers" style="display:flex;gap:7px;margin-bottom:12px"></div>
+        <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">샷 종류</div>
+        <div id="editPanelShotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span style="color:rgba(244,241,228,.7);font-size:12px;font-weight:700">구</span>
+          <button onclick="editPanelShNo(-1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">−</button>
+          <b id="editPanelShN" class="num" style="color:var(--volt);font-size:18px;min-width:22px;text-align:center">1</b>
+          <button onclick="editPanelShNo(1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">+</button>
+          <span style="color:rgba(244,241,228,.5);font-size:11px">번째</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button onclick="clearEditPoint()" style="flex:1;padding:12px;border:1.5px solid rgba(244,241,228,.3);border-radius:11px;background:transparent;color:rgba(244,241,228,.6);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">기록 삭제</button>
+          <button id="editPanelSaveBtn" onclick="saveEditPoint()" style="flex:2;padding:12px;border:none;border-radius:11px;background:var(--volt);color:var(--ink);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">저장 ✓</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ⑤ 파트너 분석 -->
@@ -412,6 +450,8 @@ nav .live-n.on{display:flex}
     </div>
     <div id="bestDuo"></div>
     <div id="duoList"></div>
+    <div class="section-t" style="margin-top:8px">선수별 샷 통계</div>
+    <div id="playerStatList"></div>
   </div>
 
   <!-- ⑥ 회원 -->
@@ -780,19 +820,32 @@ function renderRecords(){
   renderDaily();
   const box=document.getElementById('recList');
   document.getElementById('sampleNote').style.display='none';
-  if(!records.length){box.innerHTML='<div class="empty">아직 기록이 없습니다.<br>코트를 선택해 첫 경기를 기록해보세요.</div>';return;}
+  // 탭 스타일
+  ['all','normal','tournament'].forEach(v=>{
+    const btn=document.getElementById('rtab-'+v);
+    if(!btn)return;
+    const on=recFilter===v;
+    btn.style.background=on?'var(--court)':'transparent';
+    btn.style.color=on?'#fff':'var(--ink-soft)';
+    btn.style.borderColor=on?'var(--court)':'#E3E4DA';
+  });
+  const filtered=recFilter==='all'?records:records.filter(r=>(r.type||'normal')===recFilter);
+  if(!filtered.length){box.innerHTML=`<div class="empty">${recFilter==='tournament'?'대회 기록이 없습니다.':recFilter==='normal'?'일반 경기 기록이 없습니다.':'아직 기록이 없습니다.<br>코트를 선택해 첫 경기를 기록해보세요.'}</div>`;return;}
   let html='';
-  records.forEach((r,i)=>{
+  filtered.forEach((r,fi)=>{
+    const i=records.indexOf(r);
     const ct=r.c?` · 코트 ${r.c}`:' · 직접 입력';
     const isMulti=r.s.length>1;
+    const hasPlog=r.plog&&r.plog.length>0;
     r.s.forEach((sc,g)=>{
       const gw=sc[0]>sc[1]?0:sc[0]<sc[1]?1:-1;
       const glbl=isMulti?` · ${g+1}/${r.s.length}게임`:'';
       const extra=g===0?(r.sh!=null?` · 셔틀 ${r.sh}개`:'')+(r.mx?` · 최다연속 ${Math.max(...r.mx)}점`:''):'';
       const typeBadge=g===0&&r.type==='tournament'?' <span style="background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:2px 6px;border-radius:8px">대회</span>':'';
+      const editBtn=g===0?`<button onclick="openEditOverlay(${i})" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1.2px solid rgba(0,0,0,.15);background:${hasPlog?'var(--volt)':'transparent'};color:${hasPlog?'var(--ink)':'var(--ink-soft)'};font-family:inherit;font-weight:700;cursor:pointer;margin-left:4px">${hasPlog?'📊 편집':'+ 샷 기록'}</button>`:'';
       html+=`<div class="rec-row" style="${g>0?'border-top:none;padding-top:3px':''}">
         <div class="meta" style="display:flex;justify-content:space-between;align-items:center">
-          <span>${g===0?r.d+ct:''}${typeBadge}${glbl}${extra}</span>
+          <span>${g===0?r.d+ct:''}${typeBadge}${glbl}${extra}${editBtn}</span>
           <button class="del" onclick="delRecord(${i})">✕</button>
         </div>
         <div class="line1">
@@ -848,9 +901,72 @@ function renderDuo(){
     <div class="form"><span class="lbl">최근</span>${d.form.map(f=>`<i class="${f}">${f}</i>`).join('')}
       <span class="lbl" style="margin-left:auto">최다 연속 ${d.mx||'—'}점</span></div>
   </div>`).join('');
+  renderPlayerStats();
 }
 
-/* ================= 회원 ================= */
+/* ================= 선수별 샷 통계 ================= */
+function renderPlayerStats(){
+  const box=document.getElementById('playerStatList');
+  if(!box)return;
+  // plog가 있는 기록에서 선수별 데이터 집계
+  const players={};
+  records.forEach(r=>{
+    if(!r.plog||!r.plog.length)return;
+    const allPlayers=[...r.a,...r.b];
+    r.plog.forEach(p=>{
+      const pName=(p.team===0?r.a:r.b)[p.player];
+      if(!pName)return;
+      if(!players[pName])players[pName]={name:pName,score:{},lose:{},total:0,totalLose:0};
+      const ps=players[pName];
+      if(p.team===0){// 득점
+        ps.score[p.shot]=(ps.score[p.shot]||0)+1;
+        ps.total++;
+      } else {// 실점
+        ps.lose[p.shot]=(ps.lose[p.shot]||0)+1;
+        ps.totalLose++;
+      }
+    });
+  });
+  const pList=Object.values(players).sort((a,b)=>b.total+b.totalLose-(a.total+a.totalLose));
+  if(!pList.length){
+    box.innerHTML='<div class="card"><div class="empty" style="color:rgba(0,0,0,.4)">샷 기록이 있는 경기가 없습니다.<br>경기 중 샷 기록을 입력하면 여기에 집계됩니다.</div></div>';
+    return;
+  }
+  box.innerHTML=pList.map(p=>{
+    // 득점 TOP3 샷
+    const scoreTop=Object.entries(p.score).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const loseTop=Object.entries(p.lose).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const total=p.total+p.totalLose;
+    const winRate=total?Math.round(p.total/total*100):0;
+    const scoreBar=scoreTop.map(([id,cnt])=>{
+      const pct=p.total?Math.round(cnt/p.total*100):0;
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="min-width:60px;font-size:11px;color:var(--ink-soft)">${getShotName(id)}</span>
+        <div style="flex:1;height:8px;background:#E8EAE0;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--court);border-radius:4px"></div></div>
+        <span style="font-size:11px;font-weight:700;color:var(--court);min-width:28px">${cnt}회</span></div>`;
+    }).join('');
+    const loseBar=loseTop.map(([id,cnt])=>{
+      const pct=p.totalLose?Math.round(cnt/p.totalLose*100):0;
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="min-width:60px;font-size:11px;color:var(--ink-soft)">${getShotName(id)}</span>
+        <div style="flex:1;height:8px;background:#E8EAE0;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--red);border-radius:4px"></div></div>
+        <span style="font-size:11px;font-weight:700;color:var(--red);min-width:28px">${cnt}회</span></div>`;
+    }).join('');
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:900;color:var(--ink)">${p.name}</div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:900;color:var(--court)" class="num">${winRate}%</div>
+          <div style="font-size:10px;color:var(--ink-soft)">득점${p.total} · 실점${p.totalLose}</div>
+        </div>
+      </div>
+      ${scoreTop.length?`<div style="font-size:11px;font-weight:900;color:var(--court);margin-bottom:5px">득점 TOP 샷</div>${scoreBar}`:''}
+      ${loseTop.length?`<div style="font-size:11px;font-weight:900;color:var(--red);margin-top:8px;margin-bottom:5px">실점 TOP 샷</div>${loseBar}`:''}
+    </div>`;
+  }).join('');
+}
 function renderRegChips(){
   document.getElementById('regGrade').innerHTML=GRADES.map(g=>
     `<button class="${regG===g?'on':''}" onclick="regG='${g}';renderRegChips()">${lblG(g)}</button>`).join('');
@@ -978,15 +1094,49 @@ async function saveDirect(){
 }
 /* ================= 샷 로그 ================= */
 let matchType='normal';
+let recFilter='all';
+let editState={recIdx:-1,ptIdx:-1,team:0,player:null,shot:null,shNo:1};
+const SHOT_CATS=[
+  {id:'serve',  n:'서비스'},
+  {id:'net',    n:'네트'},
+  {id:'attack', n:'공격'},
+  {id:'drive',  n:'드라이브'},
+  {id:'rear',   n:'후위'},
+  {id:'def',    n:'수비'},
+];
 const SHOT_TYPES=[
-  {id:'serve',    n:'서브'},       {id:'receive',  n:'리시브'},
-  {id:'smash',    n:'스매시'},     {id:'smashX',   n:'대각스매시'},
-  {id:'clear',    n:'클리어'},     {id:'clearX',   n:'대각클리어'},
-  {id:'driveFH',  n:'드라이브FH'}, {id:'driveBH',  n:'드라이브BH'},
-  {id:'driveXFH', n:'대각Drive FH'},{id:'driveXBH',n:'대각Drive BH'},
-  {id:'hairpin',  n:'헤어핀'},     {id:'hairpinX', n:'크로스헤어핀'},
-  {id:'cut',      n:'커트'},       {id:'cutX',     n:'대각커트'},
-  {id:'drop',     n:'드롭'},       {id:'dropX',    n:'대각드롭'},
+  // 서비스
+  {id:'serve',     n:'서브',          cat:'serve'},
+  {id:'receive',   n:'리시브',        cat:'serve'},
+  // 네트
+  {id:'hairpin',   n:'헤어핀',        cat:'net'},
+  {id:'hairpinX',  n:'크로스헤어핀',  cat:'net'},
+  {id:'netkill',   n:'네트킬',        cat:'net'},
+  {id:'pushFH',    n:'푸시FH',        cat:'net'},
+  {id:'pushBH',    n:'푸시BH',        cat:'net'},
+  {id:'backPush',  n:'백푸시',        cat:'net'},
+  // 공격
+  {id:'smash',     n:'스매시',        cat:'attack'},
+  {id:'smashX',    n:'대각스매시',    cat:'attack'},
+  {id:'jumpSmash', n:'점프스매시',    cat:'attack'},
+  {id:'cut',       n:'커트',          cat:'attack'},
+  {id:'cutX',      n:'대각커트',      cat:'attack'},
+  {id:'slice',     n:'슬라이스',      cat:'attack'},
+  // 드라이브
+  {id:'driveFH',   n:'드라이브FH',    cat:'drive'},
+  {id:'driveBH',   n:'드라이브BH',    cat:'drive'},
+  {id:'driveXFH',  n:'대각드라이브FH',cat:'drive'},
+  {id:'driveXBH',  n:'대각드라이브BH',cat:'drive'},
+  // 후위
+  {id:'clear',     n:'클리어',        cat:'rear'},
+  {id:'clearBH',   n:'클리어BH',      cat:'rear'},
+  {id:'clearX',    n:'대각클리어',    cat:'rear'},
+  {id:'drop',      n:'드롭',          cat:'rear'},
+  {id:'dropX',     n:'대각드롭',      cat:'rear'},
+  {id:'lob',       n:'로브',          cat:'rear'},
+  // 수비
+  {id:'lift',      n:'리프트',        cat:'def'},
+  {id:'block',     n:'블록',          cat:'def'},
 ];
 let logState={team:0,player:null,shot:null,shNo:1};
 
@@ -1010,10 +1160,18 @@ function renderLogOverlay(){
     const on=logState.player===i;
     return `<button onclick="logSelPlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
   }).join('');
-  document.getElementById('logShotGrid').innerHTML=SHOT_TYPES.map(s=>{
-    const on=logState.shot===s.id;
-    return `<button onclick="logSelShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
-  }).join('');
+  // 카테고리별 그룹
+  let shotHtml='';
+  SHOT_CATS.forEach(cat=>{
+    const shots=SHOT_TYPES.filter(s=>s.cat===cat.id);
+    if(!shots.length)return;
+    shotHtml+=`<div style="grid-column:1/-1;font-size:9px;font-weight:900;color:rgba(244,241,228,.4);margin:4px 0 1px;text-transform:uppercase;letter-spacing:.5px">${cat.n}</div>`;
+    shots.forEach(s=>{
+      const on=logState.shot===s.id;
+      shotHtml+=`<button onclick="logSelShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
+    });
+  });
+  document.getElementById('logShotGrid').innerHTML=shotHtml;
   document.getElementById('logShN').textContent=logState.shNo;
   const ok=logState.player!==null&&logState.shot!==null;
   const sb=document.getElementById('logSaveBtn');
@@ -1033,6 +1191,121 @@ function saveLog(){
   document.getElementById('logOverlay').style.display='none';
 }
 function skipLog(){document.getElementById('logOverlay').style.display='none';}
+
+/* ================= 기록 필터 ================= */
+function setRecFilter(v){recFilter=v;renderRecords();}
+
+/* ================= 기록 편집 오버레이 ================= */
+function openEditOverlay(recIdx){
+  editState={recIdx,ptIdx:-1,team:0,player:null,shot:null,shNo:1};
+  const ov=document.getElementById('editOverlay');
+  ov.style.display='flex';
+  renderEditPointList();
+}
+function closeEditOverlay(){
+  document.getElementById('editOverlay').style.display='none';
+  renderRecords();
+}
+function renderEditPointList(){
+  const r=records[editState.recIdx];
+  if(!r)return;
+  document.getElementById('editTitle').textContent=`📋 ${r.a.join('·')} vs ${r.b.join('·')} 샷 기록`;
+  const plog=r.plog||[];
+  // 각 세트별 점수를 점수 순서대로 표시
+  // plog에 없는 포인트도 표시 (총 점수 합산으로)
+  const totalPts=r.s.reduce((s,sc)=>s+sc[0]+sc[1],0);
+  let html='';
+  for(let pi=0;pi<Math.max(totalPts,plog.length);pi++){
+    const p=plog[pi];
+    const teamLbl=p?((p.team===0?'🟢 '+r.a.join('·'):'🔴 '+r.b.join('·'))):'—';
+    const shotInfo=p?getShotName(p.shot):'미기록';
+    const playerName=p&&p.player!=null?(p.team===0?r.a[p.player]:r.b[p.player]):'';
+    const scoreStr=p?`${p.score[0]}:${p.score[1]}`:`${pi+1}번째`;
+    const shStr=p?` · 구 ${p.shNo}번째`:'';
+    const hasDat=!!p;
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(244,241,228,.05);border:1px solid rgba(244,241,228,.12)">
+      <div style="min-width:42px;text-align:center;font-size:12px;font-weight:900;color:var(--volt)" class="num">${scoreStr}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;color:var(--line)">${teamLbl}${playerName?' · '+playerName:''}</div>
+        <div style="font-size:11px;color:rgba(244,241,228,.45)">${hasDat?shotInfo+shStr:'미기록'}</div>
+      </div>
+      <button onclick="openEditPanel(${pi})" style="padding:5px 10px;border-radius:8px;border:1.2px solid ${hasDat?'var(--volt)':'rgba(244,241,228,.3)'};background:transparent;color:${hasDat?'var(--volt)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">${hasDat?'수정':'추가'}</button>
+    </div>`;
+  }
+  if(!html)html='<div style="color:rgba(244,241,228,.4);font-size:13px;text-align:center;padding:20px">점수 데이터가 없습니다<br><small>경기 진행 중 샷 기록을 추가하거나<br>아래 + 추가 버튼으로 직접 입력하세요</small></div>';
+  document.getElementById('editPointList').innerHTML=html;
+}
+function getShotName(id){
+  const s=SHOT_TYPES.find(t=>t.id===id);
+  return s?s.n:'알 수 없음';
+}
+function openEditPanel(ptIdx){
+  const r=records[editState.recIdx];
+  if(!r)return;
+  editState.ptIdx=ptIdx;
+  const p=(r.plog||[])[ptIdx];
+  editState.team=p?p.team:0;
+  editState.player=p?p.player:null;
+  editState.shot=p?p.shot:null;
+  editState.shNo=p?p.shNo:1;
+  const panel=document.getElementById('editPointPanel');
+  panel.style.display='flex';
+  renderEditPanel(r);
+}
+function closeEditPanel(){
+  document.getElementById('editPointPanel').style.display='none';
+  renderEditPointList();
+}
+function renderEditPanel(r){
+  const isOur=editState.team===0;
+  document.getElementById('editPanelTitle').textContent=`${editState.ptIdx+1}번째 포인트 편집`;
+  document.getElementById('editPanelTypeBar').innerHTML=
+    `<button onclick="editSetTeam(0)" style="margin-right:6px;padding:4px 10px;border-radius:8px;border:1.5px solid ${!isOur?'var(--volt)':'rgba(244,241,228,.2)'};background:${!isOur?'var(--volt)':'transparent'};color:${!isOur?'var(--ink)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🟢 득점</button>`+
+    `<button onclick="editSetTeam(1)" style="padding:4px 10px;border-radius:8px;border:1.5px solid ${isOur?'var(--volt)':'rgba(244,241,228,.2)'};background:${isOur?'var(--volt)':'transparent'};color:${isOur?'var(--ink)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🔴 실점</button>`;
+  const players=isOur?r.a:r.b;
+  document.getElementById('editPanelPlayers').innerHTML=players.map((n,i)=>{
+    const on=editState.player===i;
+    return `<button onclick="editSelPlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
+  }).join('');
+  let shotHtml='';
+  SHOT_CATS.forEach(cat=>{
+    const shots=SHOT_TYPES.filter(s=>s.cat===cat.id);
+    if(!shots.length)return;
+    shotHtml+=`<div style="grid-column:1/-1;font-size:9px;font-weight:900;color:rgba(244,241,228,.4);margin:4px 0 1px">${cat.n}</div>`;
+    shots.forEach(s=>{
+      const on=editState.shot===s.id;
+      shotHtml+=`<button onclick="editSelShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
+    });
+  });
+  document.getElementById('editPanelShotGrid').innerHTML=shotHtml;
+  document.getElementById('editPanelShN').textContent=editState.shNo;
+}
+function editSetTeam(t){editState.team=t;editState.player=null;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
+function editSelPlayer(i){editState.player=i;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
+function editSelShot(id){editState.shot=id;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
+function editPanelShNo(d){editState.shNo=Math.max(1,editState.shNo+d);document.getElementById('editPanelShN').textContent=editState.shNo;}
+function clearEditPoint(){
+  const r=records[editState.recIdx];
+  if(!r||!r.plog)return closeEditPanel();
+  r.plog.splice(editState.ptIdx,1);
+  saveRecords();
+  closeEditPanel();
+}
+async function saveEditPoint(){
+  const r=records[editState.recIdx];
+  if(!r)return;
+  if(!r.plog)r.plog=[];
+  const entry={team:editState.team,player:editState.player,shot:editState.shot,shNo:editState.shNo,setNo:1,score:[0,0]};
+  // 기존 포인트가 있으면 score/setNo 유지
+  if(r.plog[editState.ptIdx]){
+    entry.score=r.plog[editState.ptIdx].score||[0,0];
+    entry.setNo=r.plog[editState.ptIdx].setNo||1;
+  }
+  r.plog[editState.ptIdx]=entry;
+  await saveRecords();
+  closeEditPanel();
+  renderDuo();
+}
 
 /* ================= 오늘 날짜 (한국 시간) ================= */
 function renderDate(){
