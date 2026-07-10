@@ -293,8 +293,8 @@ nav .live-n.on{display:flex}
       <div class="courtview">
         <div class="half top" onclick="point(1)">
           <div class="pboxes">
-            <div class="pbox"><div class="pn" id="pn10">—</div><span class="role" id="rl10"></span></div>
-            <div class="pbox"><div class="pn" id="pn11">—</div><span class="role" id="rl11"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointPlayer(1,0)" style="cursor:pointer"><div class="pn" id="pn10">—</div><span class="role" id="rl10"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointPlayer(1,1)" style="cursor:pointer"><div class="pn" id="pn11">—</div><span class="role" id="rl11"></span></div>
           </div>
           <div class="scwrap"><div class="sc num" id="p1">0</div>
             <div class="setdots" id="d1"><i></i><i></i></div>
@@ -315,8 +315,8 @@ nav .live-n.on{display:flex}
             <div class="sc num" id="p0">0</div>
             <div class="setdots" id="d0"><i></i><i></i></div></div>
           <div class="pboxes">
-            <div class="pbox"><div class="pn" id="pn00">—</div><span class="role" id="rl00"></span></div>
-            <div class="pbox"><div class="pn" id="pn01">—</div><span class="role" id="rl01"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointPlayer(0,0)" style="cursor:pointer"><div class="pn" id="pn00">—</div><span class="role" id="rl00"></span></div>
+            <div class="pbox" onclick="event.stopPropagation();pointPlayer(0,1)" style="cursor:pointer"><div class="pn" id="pn01">—</div><span class="role" id="rl01"></span></div>
           </div>
         </div>
         <div class="toast" id="toast"></div>
@@ -358,14 +358,14 @@ nav .live-n.on{display:flex}
   <div class="screen" id="records">
     <div class="pagehead">
       <div class="eyebrow">Match Log</div>
-      <h1>경기 기록</h1>
+      <h1>기록</h1>
     </div>
     <div class="note" id="sampleNote" style="display:none">아래는 예시 데이터입니다 — 경기를 기록하면 대체됩니다</div>
     <!-- 필터 탭 -->
-    <div style="display:flex;gap:6px;padding:8px 0 4px">
-      <button id="rtab-all"   onclick="setRecFilter('all')"        style="flex:1;padding:7px 0;border-radius:20px;border:1.5px solid var(--court);background:var(--court);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">전체</button>
-      <button id="rtab-normal" onclick="setRecFilter('normal')"   style="flex:1;padding:7px 0;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">일반</button>
-      <button id="rtab-tournament" onclick="setRecFilter('tournament')" style="flex:1;padding:7px 0;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">대회</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:8px 0 4px">
+      <button id="rtab-all"        onclick="setRecFilter('all')"        style="padding:7px 4px;border-radius:20px;border:1.5px solid var(--court);background:var(--court);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center">전체</button>
+      <button id="rtab-normal"     onclick="setRecFilter('normal')"     style="padding:7px 4px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center">일반</button>
+      <button id="rtab-tournament" onclick="setRecFilter('tournament')" style="padding:7px 4px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-align:center">대회</button>
     </div>
     <button class="btn" onclick="toggleDirect()" id="directToggleBtn" style="margin-top:4px">+ 결과 직접 입력</button>
     <div id="directForm" style="display:none">
@@ -431,16 +431,15 @@ nav .live-n.on{display:flex}
     </div>
   </div>
 
-  <!-- ⑤ 파트너 분석 -->
+  <!-- ⑤ 분석 -->
   <div class="screen" id="duo">
     <div class="pagehead">
-      <div class="eyebrow">Duo Analysis</div>
-      <h1>파트너 분석</h1>
+      <div class="eyebrow">Analysis</div>
+      <h1>분석</h1>
     </div>
-    <div id="bestDuo"></div>
-    <div id="duoList"></div>
-    <div class="section-t" style="margin-top:8px">선수별 샷 통계</div>
-    <div id="playerStatList"></div>
+    <div id="duoPlayerChips" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+    <div id="duoTabBar" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px"></div>
+    <div id="duoTabContent"></div>
   </div>
 
   <!-- ⑥ 회원 -->
@@ -825,7 +824,7 @@ function renderRecords(){
       const glbl=isMulti?` · ${g+1}/${r.s.length}게임`:'';
       const extra=g===0?(r.mx?` · 최다연속 ${Math.max(...r.mx)}점`:''):'';
       const typeBadge=g===0&&r.type==='tournament'?' <span style="background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:2px 6px;border-radius:8px">대회</span>':'';
-      const editBtn=g===0?`<button onclick="openEditOverlay(${i})" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1.2px solid rgba(0,0,0,.15);background:${hasPlog?'var(--volt)':'transparent'};color:${hasPlog?'var(--ink)':'var(--ink-soft)'};font-family:inherit;font-weight:700;cursor:pointer;margin-left:4px">${hasPlog?'📊 편집':'+ 샷 기록'}</button>`:'';
+      const editBtn=`<button onclick="openEditOverlay(${i},${g})" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1.2px solid rgba(0,0,0,.15);background:${hasPlog?'var(--volt)':'transparent'};color:${hasPlog?'var(--ink)':'var(--ink-soft)'};font-family:inherit;font-weight:700;cursor:pointer;margin-left:4px">${hasPlog?'📊 편집':'+ 샷 기록'}</button>`;
       html+=`<div class="rec-row" style="${g>0?'border-top:none;padding-top:3px':''}">
         <div class="meta" style="display:flex;justify-content:space-between;align-items:center">
           <span>${g===0?r.d+ct:''}${typeBadge}${glbl}${extra}${editBtn}</span>
@@ -842,18 +841,46 @@ function renderRecords(){
   box.innerHTML=html;
 }
 
-/* ================= 파트너 분석 ================= */
+/* ================= 분석 ================= */
+function setSelPlayer(name){selPlayer=selPlayer===name?null:name;renderDuo();}
+function setDuoTab(t){duoTab=t;renderDuo();}
+
 function renderDuo(){
+  // 선수 칩
+  const allPlayers=new Set();
+  records.forEach(r=>{[...r.a,...r.b].forEach(n=>allPlayers.add(n));});
+  const chipsBox=document.getElementById('duoPlayerChips');
+  if(chipsBox){
+    if(!allPlayers.size){chipsBox.innerHTML='';}
+    else{chipsBox.innerHTML=[...allPlayers].map(n=>{
+      const on=selPlayer===n;
+      return `<button onclick="setSelPlayer('${n.replace(/'/g,"\\'")}') " style="flex:none;padding:6px 14px;border-radius:20px;border:1.5px solid ${on?'var(--court)':'#E3E4DA'};background:${on?'var(--court)':'transparent'};color:${on?'#fff':'var(--ink-soft)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">${n}</button>`;
+    }).join('');}
+  }
+  // 탭 바
+  const tabBar=document.getElementById('duoTabBar');
+  if(tabBar)tabBar.innerHTML=[['pair','파트너'],['stat','선수 득실']].map(([t,l])=>{
+    const on=duoTab===t;
+    return `<button onclick="setDuoTab('${t}')" style="padding:7px 4px;border-radius:20px;border:1.5px solid ${on?'var(--court)':'#E3E4DA'};background:${on?'var(--court)':'transparent'};color:${on?'#fff':'var(--ink-soft)'};font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">${l}</button>`;
+  }).join('');
+  const content=document.getElementById('duoTabContent');
+  if(!content)return;
+  if(!records.length){content.innerHTML='<div class="card"><div class="empty">경기를 기록하면 분석이 집계됩니다.</div></div>';return;}
+  duoTab==='pair'?renderDuoPair(content):renderDuoStat(content);
+}
+
+function renderDuoPair(content){
   const stats={};
   records.forEach(r=>{
     [[r.a,0],[r.b,1]].forEach(([pair,side])=>{
+      if(selPlayer&&!pair.includes(selPlayer))return;
       const k=[...pair].sort().join(' · ');
       const s=stats[k]=stats[k]||{w:0,l:0,pf:0,pa:0,sets:0,cw:0,cl:0,mx:0,form:[]};
-      const win=r.w===side, drw=r.w===-1;
+      const win=r.w===side,drw=r.w===-1;
       if(s.form.length<5)s.form.push(drw?'D':(win?'W':'L'));
       r.s.forEach(sc=>{
-        s.pf+=sc[side]; s.pa+=sc[1-side]; s.sets++;
-        if(sc[side]>sc[1-side])s.w++; else if(sc[side]<sc[1-side])s.l++;
+        s.pf+=sc[side];s.pa+=sc[1-side];s.sets++;
+        if(sc[side]>sc[1-side])s.w++;else if(sc[side]<sc[1-side])s.l++;
         if(Math.abs(sc[0]-sc[1])<=2){(sc[side]>sc[1-side])?s.cw++:s.cl++;}
       });
       if(r.mx&&r.mx[side]>s.mx)s.mx=r.mx[side];
@@ -861,18 +888,10 @@ function renderDuo(){
   });
   const list=Object.entries(stats).map(([k,v])=>({k,...v,n:v.w+v.l,
     rate:Math.round(v.w/(v.w+v.l||1)*100),
-    apf:(v.pf/(v.sets||1)).toFixed(1), apa:(v.pa/(v.sets||1)).toFixed(1)}))
+    apf:(v.pf/(v.sets||1)).toFixed(1),apa:(v.pa/(v.sets||1)).toFixed(1)}))
     .sort((a,b)=>b.rate-a.rate||b.n-a.n);
-  const best=document.getElementById('bestDuo'), box=document.getElementById('duoList');
-  if(!list.length){best.innerHTML='';
-    box.innerHTML='<div class="card"><div class="empty">경기를 기록하면 파트너별 분석이 집계됩니다.</div></div>';return;}
-  const t=list[0];
-  best.innerHTML=`<div class="card partner-card">
-    <div class="eyebrow">최고의 듀오</div>
-    <div class="pair">${t.k}</div>
-    <div class="rate num">${t.rate}%</div>
-    <div style="font-size:11px;opacity:.65">${t.n}게임 ${t.w}승 ${t.l}패</div></div>`;
-  box.innerHTML=list.map(d=>`<div class="card duo-card">
+  if(!list.length){content.innerHTML=`<div class="card"><div class="empty">${selPlayer?selPlayer+'의 파트너 기록이 없습니다.':'경기를 기록하면 파트너별 분석이 집계됩니다.'}</div></div>`;return;}
+  content.innerHTML=list.map(d=>`<div class="card duo-card">
     <div class="duo-head"><div class="nm">${d.k}</div>
       <div class="rt">${d.rate}%<small>${d.w}승 ${d.l}패</small></div></div>
     <div class="bar"><i style="width:${d.rate}%"></i></div>
@@ -884,58 +903,36 @@ function renderDuo(){
     <div class="form"><span class="lbl">최근</span>${d.form.map(f=>`<i class="${f}">${f}</i>`).join('')}
       <span class="lbl" style="margin-left:auto">최다 연속 ${d.mx||'—'}점</span></div>
   </div>`).join('');
-  renderPlayerStats();
 }
 
-/* ================= 선수별 샷 통계 ================= */
-function renderPlayerStats(){
-  const box=document.getElementById('playerStatList');
-  if(!box)return;
-  // plog가 있는 기록에서 선수별 데이터 집계
+function renderDuoStat(content){
   const players={};
   records.forEach(r=>{
     if(!r.plog||!r.plog.length)return;
-    const allPlayers=[...r.a,...r.b];
     r.plog.forEach(p=>{
       const pName=(p.team===0?r.a:r.b)[p.player];
       if(!pName)return;
+      if(selPlayer&&pName!==selPlayer)return;
       if(!players[pName])players[pName]={name:pName,score:{},lose:{},total:0,totalLose:0};
       const ps=players[pName];
-      if(p.team===0){// 득점
-        ps.score[p.shot]=(ps.score[p.shot]||0)+1;
-        ps.total++;
-      } else {// 실점
-        ps.lose[p.shot]=(ps.lose[p.shot]||0)+1;
-        ps.totalLose++;
-      }
+      if(p.team===0){ps.score[p.shot]=(ps.score[p.shot]||0)+1;ps.total++;}
+      else{ps.lose[p.shot]=(ps.lose[p.shot]||0)+1;ps.totalLose++;}
     });
   });
   const pList=Object.values(players).sort((a,b)=>b.total+b.totalLose-(a.total+a.totalLose));
-  if(!pList.length){
-    box.innerHTML='<div class="card"><div class="empty" style="color:rgba(0,0,0,.4)">샷 기록이 있는 경기가 없습니다.<br>경기 중 샷 기록을 입력하면 여기에 집계됩니다.</div></div>';
-    return;
-  }
-  box.innerHTML=pList.map(p=>{
-    // 득점 TOP3 샷
-    const scoreTop=Object.entries(p.score).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    const loseTop=Object.entries(p.lose).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(!pList.length){content.innerHTML='<div class="card"><div class="empty">샷 기록이 있는 경기가 없습니다.</div></div>';return;}
+  content.innerHTML=pList.map(p=>{
+    const scoreTop=Object.entries(p.score).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const loseTop=Object.entries(p.lose).sort((a,b)=>b[1]-a[1]).slice(0,5);
     const total=p.total+p.totalLose;
     const winRate=total?Math.round(p.total/total*100):0;
-    const scoreBar=scoreTop.map(([id,cnt])=>{
-      const pct=p.total?Math.round(cnt/p.total*100):0;
+    const bar=(entries,maxVal,color)=>entries.map(([id,cnt])=>{
+      const pct=maxVal?Math.round(cnt/maxVal*100):0;
       return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <span style="min-width:60px;font-size:11px;color:var(--ink-soft)">${getShotName(id)}</span>
-        <div style="flex:1;height:8px;background:#E8EAE0;border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:var(--court);border-radius:4px"></div></div>
-        <span style="font-size:11px;font-weight:700;color:var(--court);min-width:28px">${cnt}회</span></div>`;
-    }).join('');
-    const loseBar=loseTop.map(([id,cnt])=>{
-      const pct=p.totalLose?Math.round(cnt/p.totalLose*100):0;
-      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <span style="min-width:60px;font-size:11px;color:var(--ink-soft)">${getShotName(id)}</span>
-        <div style="flex:1;height:8px;background:#E8EAE0;border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:var(--red);border-radius:4px"></div></div>
-        <span style="font-size:11px;font-weight:700;color:var(--red);min-width:28px">${cnt}회</span></div>`;
+        <span style="min-width:68px;font-size:11px;color:var(--ink-soft)">${getShotName(id)}</span>
+        <div style="flex:1;height:7px;background:#E8EAE0;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:4px"></div></div>
+        <span style="font-size:11px;font-weight:700;color:${color};min-width:28px">${cnt}회</span></div>`;
     }).join('');
     return `<div class="card" style="margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -945,8 +942,8 @@ function renderPlayerStats(){
           <div style="font-size:10px;color:var(--ink-soft)">득점${p.total} · 실점${p.totalLose}</div>
         </div>
       </div>
-      ${scoreTop.length?`<div style="font-size:11px;font-weight:900;color:var(--court);margin-bottom:5px">득점 TOP 샷</div>${scoreBar}`:''}
-      ${loseTop.length?`<div style="font-size:11px;font-weight:900;color:var(--red);margin-top:8px;margin-bottom:5px">실점 TOP 샷</div>${loseBar}`:''}
+      ${scoreTop.length?`<div style="font-size:11px;font-weight:900;color:var(--court);margin-bottom:5px">득점 TOP 샷</div>${bar(scoreTop,p.total,'var(--court)')}`:''}
+      ${loseTop.length?`<div style="font-size:11px;font-weight:900;color:var(--red);margin-top:8px;margin-bottom:5px">실점 TOP 샷</div>${bar(loseTop,p.totalLose,'var(--red)')}`:''}
     </div>`;
   }).join('');
 }
@@ -1078,7 +1075,9 @@ async function saveDirect(){
 /* ================= 샷 로그 ================= */
 let matchType='normal';
 let recFilter='all';
-let editState={recIdx:-1,ptIdx:-1,team:0,player:null,shot:null,shNo:1};
+let editState={recIdx:-1,ptIdx:-1,gameIdx:0,team:0,player:null,shot:null,shNo:1};
+let selPlayer=null, duoTab='pair';
+let pendingPlayer=null;
 const SHOT_CATS=[
   {id:'serve',  n:'서비스'},
   {id:'net',    n:'네트'},
@@ -1127,12 +1126,14 @@ function setMatchType(v){matchType=v;renderOpts();}
 
 function showPointLog(team){
   const V=cur(); if(!V)return;
-  logState={team,player:null,shot:null,shNo:V.shuttleNo||1};
+  const pre=pendingPlayer; pendingPlayer=null;
+  logState={team,player:pre,shot:null,shNo:V.shuttleNo||1};
   const ov=document.getElementById('logOverlay');
   if(!ov)return;
   ov.style.display='flex';
   renderLogOverlay();
 }
+function pointPlayer(team,pi){pendingPlayer=pi;point(team);}
 function renderLogOverlay(){
   const V=cur(); if(!V)return;
   const isOur=logState.team===0;
@@ -1179,8 +1180,8 @@ function skipLog(){document.getElementById('logOverlay').style.display='none';}
 function setRecFilter(v){recFilter=v;renderRecords();}
 
 /* ================= 기록 편집 오버레이 ================= */
-function openEditOverlay(recIdx){
-  editState={recIdx,ptIdx:-1,team:0,player:null,shot:null,shNo:1};
+function openEditOverlay(recIdx, gameIdx=0){
+  editState={recIdx,ptIdx:-1,gameIdx,team:0,player:null,shot:null,shNo:1};
   const ov=document.getElementById('editOverlay');
   ov.style.display='flex';
   renderEditPointList();
@@ -1192,11 +1193,11 @@ function closeEditOverlay(){
 function renderEditPointList(){
   const r=records[editState.recIdx];
   if(!r)return;
-  document.getElementById('editTitle').textContent=`📋 ${r.a.join('·')} vs ${r.b.join('·')} 샷 기록`;
-  const plog=r.plog||[];
-  // 각 세트별 점수를 점수 순서대로 표시
-  // plog에 없는 포인트도 표시 (총 점수 합산으로)
-  const totalPts=r.s.reduce((s,sc)=>s+sc[0]+sc[1],0);
+  const gi=editState.gameIdx||0;
+  const sc=r.s[gi]||[0,0];
+  document.getElementById('editTitle').textContent=`📋 ${r.a.join('·')} vs ${r.b.join('·')} ${r.s.length>1?`(${gi+1}게임)`:''} 샷 기록`;
+  const plog=(r.plog||[]).filter(p=>(p.setNo||1)===(gi+1));
+  const totalPts=sc[0]+sc[1];
   let html='';
   for(let pi=0;pi<Math.max(totalPts,plog.length);pi++){
     const p=plog[pi];
@@ -1299,6 +1300,19 @@ function renderDate(){
 }
 
 loadAll();
+
+/* PWA 뒤로가기 경고 */
+history.pushState({a:'app'},'');
+window.addEventListener('popstate',()=>{
+  const V=cur();
+  if(V&&!V.over){
+    if(!confirm('경기가 진행 중입니다.\n나가면 현재 점수 기록이 사라집니다.\n\n계속 나가시겠습니까?')){
+      history.pushState({a:'app'},'');
+    }
+  } else {
+    history.pushState({a:'app'},'');
+  }
+});
 
 /* PWA: 오프라인 캐시용 서비스 워커 */
 if('serviceWorker' in navigator){
