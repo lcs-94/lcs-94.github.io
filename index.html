@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -278,12 +278,15 @@ nav .live-n.on{display:flex}
         <b class="num stp-val" id="shVal">4</b><span class="stp-unit">개</span>
         <button class="stp" onclick="adjSh(1)">+</button>
       </div>      <div class="team-label">코트 체인지</div>
-      <div class="fmt-row" id="ccRow"></div>    </div>
+      <div class="fmt-row" id="ccRow"></div>
+      <div class="team-label">경기 유형</div>
+      <div class="fmt-row" id="matchTypeRow"></div>
+    </div>
     <button class="btn volt" id="startBtn" onclick="startMatch()" disabled>경기 시작 →</button>
   </div>
 
   <!-- ③ 스코어보드 -->
-  <div class="screen" id="score">
+  <div class="screen" id="score" style="position:relative">
     <div class="cswitch" id="cswitch"></div>
     <div id="scoreBody" style="display:none;flex:1;flex-direction:column">
       <div class="score-top">
@@ -340,6 +343,25 @@ nav .live-n.on{display:flex}
     <div class="score-empty" id="scoreEmpty">
       진행 중인 경기가 없습니다<br>홈에서 코트를 선택해 시작하세요
       <button onclick="go('home')">코트 선택하러 가기</button>
+    </div>
+    <div id="logOverlay" style="display:none;position:absolute;inset:0;background:var(--court-deep);z-index:20;flex-direction:column;overflow-y:auto;padding:14px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div id="logTitle" style="color:var(--volt);font-size:15px;font-weight:900">📝 득점 기록</div>
+        <button onclick="skipLog()" style="font-size:12px;font-weight:700;color:rgba(244,241,228,.6);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px">건너뛰기</button>
+      </div>
+      <div id="logTypeBar" style="font-size:11px;font-weight:700;color:rgba(244,241,228,.6);margin-bottom:10px"></div>
+      <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">득점 선수</div>
+      <div style="display:flex;gap:7px;margin-bottom:12px" id="logPlayerRow"></div>
+      <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">샷 종류</div>
+      <div id="logShotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="color:rgba(244,241,228,.7);font-size:12px;font-weight:700">셔틀콕</span>
+        <button onclick="logShNo(-1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">−</button>
+        <b id="logShN" class="num" style="color:var(--volt);font-size:18px;min-width:22px;text-align:center">1</b>
+        <button onclick="logShNo(1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">+</button>
+        <span style="color:rgba(244,241,228,.5);font-size:11px">번째 셔틀콕</span>
+      </div>
+      <button id="logSaveBtn" onclick="saveLog()" disabled style="width:100%;padding:13px;border:none;border-radius:11px;background:var(--volt);color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;opacity:0.4;margin-bottom:14px">기록 완료 ✓</button>
     </div>
   </div>
 
@@ -410,46 +432,7 @@ nav .live-n.on{display:flex}
     <div class="card" id="memList"></div>
   </div>
 
-  <!-- ⑦ 로테이션 시뮬 -->
-  <div class="screen" id="rotation">
-    <div class="pagehead">
-      <div class="eyebrow">Rotation Sim</div>
-      <h1>로테이션 시뮬</h1>
-    </div>
-    <div style="display:flex;gap:8px;padding:0 20px 8px">
-      <div style="flex:1;background:var(--card);border:1.5px solid #E3E4DA;border-radius:10px;padding:8px 10px;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:var(--ink-soft)">우리팀 진형</div>
-        <div id="rotOurForm" style="font-size:13px;font-weight:900;color:var(--court)">좌우 (수비)</div>
-      </div>
-      <div style="flex:1;background:var(--card);border:1.5px solid #E3E4DA;border-radius:10px;padding:8px 10px;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:var(--ink-soft)">상대팀 진형</div>
-        <div id="rotOppForm" style="font-size:13px;font-weight:900;color:var(--red)">좌우 (수비)</div>
-      </div>
-    </div>
-    <div style="padding:0 20px 8px">
-      <svg id="rotCourt" viewBox="0 0 280 380" style="width:100%;display:block;border-radius:8px"></svg>
-    </div>
-    <div class="card">
-      <div class="team-label" style="margin-top:0">공 위치</div>
-      <div class="fmt-row">
-        <button id="rotPossOur" class="on" onclick="setPoss('our')">우리팀</button>
-        <button id="rotPossOpp" onclick="setPoss('opp')">상대팀</button>
-      </div>
-      <div class="team-label">샷 종류</div>
-      <div class="opt-chips" id="rotShotPicker"></div>
-      <div class="team-label">방향</div>
-      <div class="fmt-row">
-        <button id="rotDirStr" class="on" onclick="setRotDir('straight')">직선</button>
-        <button id="rotDirCrs" onclick="setRotDir('cross')">크로스</button>
-      </div>
-    </div>
-    <button class="btn volt" onclick="runSim()">시뮬레이션 →</button>
-    <div id="rotTip" style="display:none;margin:0 20px 8px;padding:12px 14px;background:#EEF7EC;border-radius:10px;font-size:12px;font-weight:500;color:var(--court);line-height:1.6"></div>
-    <button id="rotNextBtn" class="btn" onclick="applyRot()" style="display:none">다음 랠리 적용 →</button>
-    <button class="btn" style="background:#F0F1E8;color:var(--ink-soft)" onclick="resetRot()">↺ 초기화</button>
-  </div>
-
-  <nav style="font-size:9px">
+  <nav>
     <button class="on" data-t="home" onclick="go('home')">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h18"/></svg>코트</button>
     <button data-t="score" onclick="goScore()">
@@ -459,8 +442,6 @@ nav .live-n.on{display:flex}
       <svg viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2zM9 8h6M9 12h6"/></svg>기록</button>
     <button data-t="duo" onclick="go('duo')">
       <svg viewBox="0 0 24 24"><path d="M3 20V10M9 20V4M15 20v-8M21 20V7"/></svg>분석</button>
-    <button data-t="rotation" onclick="go('rotation');renderRotAll()">
-      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>로테이션</button>
     <button data-t="members" onclick="go('members')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>회원</button>
   </nav>
@@ -628,6 +609,8 @@ function renderOpts(){
   document.getElementById('dcOff').classList.toggle('on',!deuceOn);
   document.getElementById('ccRow').innerHTML=[{v:0,l:'없음'},{v:13,l:'13점 시'}]
     .map(o=>`<button class="${courtChangeAt===o.v?'on':''}" onclick="setCCAT(${o.v})">${o.l}</button>`).join('');
+  const mtr=document.getElementById('matchTypeRow');
+  if(mtr)mtr.innerHTML=[{v:'normal',l:'일반'},{v:'tournament',l:'대회'}].map(o=>`<button class="${matchType===o.v?'on':''}" onclick="setMatchType('${o.v}')">${o.l}</button>`).join('');
 }
 function shAdj(d){const V=cur();if(!V)return;
   V.sh=Math.max(0,V.sh+d);
@@ -639,7 +622,7 @@ function shAdj(d){const V=cur();if(!V)return;
 function startMatch(){
   const nm=i=>members[slots[i]].n;
   matches[selCourt]={court:selCourt,games:gamesN,pts,deuce:deuceOn,cap:pts+4,sh:shuttles,
-    ccAt:courtChangeAt,
+    ccAt:courtChangeAt,matchType,shuttleNo:1,pointLog:[],
     teams:[[nm(0),nm(1)],[nm(2),nm(3)]],
     p:[0,0],sets:[0,0],setNo:1,setScores:[],serveTeam:0,pos:[[0,1],[0,1]],
     hist:[],over:false,saved:false,lastScorer:null,streak:0,mx:[0,0]};
@@ -675,9 +658,13 @@ function point(t){
     toast('🔄 코트 체인지! ('+V.p[0]+':'+V.p[1]+')');
   }
   renderScore(); renderCourts();
+  showPointLog(t);
 }
 function undo(){
+  const ov=document.getElementById('logOverlay');
+  if(ov&&ov.style.display==='flex'){ov.style.display='none';return;}
   const V=cur(); if(!V||!V.hist.length)return;
+  if(V.pointLog&&V.pointLog.length)V.pointLog.pop();
   Object.assign(V,JSON.parse(V.hist.pop())); V.saved=false;
   renderScore(); renderCourts();
 }
@@ -698,7 +685,8 @@ async function finishGo(){
     records.unshift({d:(now.getMonth()+1)+'/'+now.getDate()+' '+
       String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
       c:V.court,a:V.teams[0],b:V.teams[1],s:V.setScores,
-      w:V.sets[0]===V.sets[1]?-1:(V.sets[0]>V.sets[1]?0:1),mx:[...V.mx],sh:V.sh});
+      w:V.sets[0]===V.sets[1]?-1:(V.sets[0]>V.sets[1]?0:1),mx:[...V.mx],sh:V.sh,
+      type:V.matchType||'normal',plog:V.pointLog||[]});
     V.saved=true; await saveRecords();
   }
   delete matches[curCourt];
@@ -801,9 +789,10 @@ function renderRecords(){
       const gw=sc[0]>sc[1]?0:sc[0]<sc[1]?1:-1;
       const glbl=isMulti?` · ${g+1}/${r.s.length}게임`:'';
       const extra=g===0?(r.sh!=null?` · 셔틀 ${r.sh}개`:'')+(r.mx?` · 최다연속 ${Math.max(...r.mx)}점`:''):'';
+      const typeBadge=g===0&&r.type==='tournament'?' <span style="background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:2px 6px;border-radius:8px">대회</span>':'';
       html+=`<div class="rec-row" style="${g>0?'border-top:none;padding-top:3px':''}">
         <div class="meta" style="display:flex;justify-content:space-between;align-items:center">
-          <span>${g===0?r.d+ct:''}${glbl}${extra}</span>
+          <span>${g===0?r.d+ct:''}${typeBadge}${glbl}${extra}</span>
           <button class="del" onclick="delRecord(${i})">✕</button>
         </div>
         <div class="line1">
@@ -987,136 +976,63 @@ async function saveDirect(){
   document.getElementById('directToggleBtn').textContent='+ 결과 직접 입력';
   renderRecords(); renderDuo();
 }
-/* ================= 로테이션 시뮬레이션 ================= */
-const ROT_SHOTS=[
-  {id:'smash',  label:'스매시',  from:'back'},
-  {id:'drop',   label:'드롭',    from:'back'},
-  {id:'clear',  label:'클리어',  from:'back'},
-  {id:'lob',    label:'로브',    from:'front'},
-  {id:'hairpin',label:'헤어핀',  from:'front'},
-  {id:'drive',  label:'드라이브',from:'back'},
-  {id:'push',   label:'푸시',    from:'front'},
+/* ================= 샷 로그 ================= */
+let matchType='normal';
+const SHOT_TYPES=[
+  {id:'serve',    n:'서브'},       {id:'receive',  n:'리시브'},
+  {id:'smash',    n:'스매시'},     {id:'smashX',   n:'대각스매시'},
+  {id:'clear',    n:'클리어'},     {id:'clearX',   n:'대각클리어'},
+  {id:'driveFH',  n:'드라이브FH'}, {id:'driveBH',  n:'드라이브BH'},
+  {id:'driveXFH', n:'대각Drive FH'},{id:'driveXBH',n:'대각Drive BH'},
+  {id:'hairpin',  n:'헤어핀'},     {id:'hairpinX', n:'크로스헤어핀'},
+  {id:'cut',      n:'커트'},       {id:'cutX',     n:'대각커트'},
+  {id:'drop',     n:'드롭'},       {id:'dropX',    n:'대각드롭'},
 ];
-const ROT_RULES={
-  smash:  {h:'front',o:'side'},
-  drop:   {h:'front',o:'side'},
-  clear:  {h:'side', o:'front'},
-  lob:    {h:'side', o:'front'},
-  hairpin:{h:'front',o:'front'},
-  drive:  {h:'side', o:'side'},
-  push:   {h:'front',o:'side'},
-};
-const ROT_TIPS={
-  smash:  '스매시 후 우리팀은 앞뒤 공격 진형 유지. 전위는 네트 압박, 후위는 후속 공격 준비.',
-  drop:   '드롭 후 전위는 네트 앞으로, 후위는 대각선 커버. 상대의 리프트를 기다립니다.',
-  clear:  '클리어 후 우리팀은 좌우 수비 전환. 상대가 앞뒤 공격 진형을 잡을 것이므로 스매시에 대비하세요.',
-  lob:    '로브 후 우리팀은 좌우 수비 전환. 상대 후위가 공격할 것이므로 코트를 넓게 커버하세요.',
-  hairpin:'헤어핀 후 양팀 전위 간 네트 싸움. 후위는 상대 리프트 시 즉시 공격 위치로 대기합니다.',
-  drive:  '드라이브는 중립 상황. 양팀 좌우 진형으로 빠른 평행 랠리에 대비합니다.',
-  push:   '푸시 후 전위는 네트 압박 유지. 후위는 상대 리프트 시 즉시 공격 포지션으로 이동합니다.',
-};
-let rot={poss:'our',ourForm:'side',oppForm:'side',shot:'smash',dir:'straight',done:false,nOf:null,nOpf:null};
+let logState={team:0,player:null,shot:null,shNo:1};
 
-function rotGetPos(form,isOur){
-  if(isOur) return form==='side'?[{x:80,y:282,l:'나'},{x:200,y:282,l:'파'}]:[{x:140,y:228,l:'전'},{x:140,y:342,l:'후'}];
-  return form==='side'?[{x:80,y:98,l:'상1'},{x:200,y:98,l:'상2'}]:[{x:140,y:42,l:'후'},{x:140,y:152,l:'전'}];
+function setMatchType(v){matchType=v;renderOpts();}
+
+function showPointLog(team){
+  const V=cur(); if(!V)return;
+  logState={team,player:null,shot:null,shNo:V.shuttleNo||1};
+  const ov=document.getElementById('logOverlay');
+  if(!ov)return;
+  ov.style.display='flex';
+  renderLogOverlay();
 }
-function rotGetHitter(shot,form,isOur){
-  const front=['lob','hairpin','push'].includes(shot);
-  if(isOur) return form==='front'?(front?{x:140,y:228}:{x:140,y:342}):(front?{x:80,y:282}:{x:200,y:282});
-  return form==='front'?(front?{x:140,y:152}:{x:140,y:42}):(front?{x:80,y:98}:{x:200,y:98});
+function renderLogOverlay(){
+  const V=cur(); if(!V)return;
+  const isOur=logState.team===0;
+  document.getElementById('logTitle').textContent=isOur?'🟢 득점 기록':'🔴 실점 기록';
+  document.getElementById('logTypeBar').textContent=isOur?'어떤 샷으로 득점했나요?':'어떤 샷에 실점했나요?';
+  const players=V.teams[logState.team];
+  document.getElementById('logPlayerRow').innerHTML=players.map((n,i)=>{
+    const on=logState.player===i;
+    return `<button onclick="logSelPlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
+  }).join('');
+  document.getElementById('logShotGrid').innerHTML=SHOT_TYPES.map(s=>{
+    const on=logState.shot===s.id;
+    return `<button onclick="logSelShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
+  }).join('');
+  document.getElementById('logShN').textContent=logState.shNo;
+  const ok=logState.player!==null&&logState.shot!==null;
+  const sb=document.getElementById('logSaveBtn');
+  sb.disabled=!ok; sb.style.opacity=ok?'1':'0.4';
 }
-function rotGetLand(shot,dir,isOur){
-  const c=dir==='cross';
-  const t={smash:{x:c?72:140,y:82},drop:{x:c?74:140,y:160},clear:{x:c?78:140,y:36},lob:{x:c?78:140,y:36},hairpin:{x:c?70:140,y:180},drive:{x:c?70:140,y:76},push:{x:c?70:140,y:164}};
-  const b={smash:{x:c?208:140,y:298},drop:{x:c?206:140,y:220},clear:{x:c?202:140,y:344},lob:{x:c?202:140,y:344},hairpin:{x:c?210:140,y:200},drive:{x:c?210:140,y:304},push:{x:c?210:140,y:216}};
-  return (isOur?t:b)[shot]||{x:140,y:isOur?90:290};
+function logSelPlayer(i){logState.player=i;renderLogOverlay();}
+function logSelShot(id){logState.shot=id;renderLogOverlay();}
+function logShNo(d){
+  logState.shNo=Math.max(1,logState.shNo+d);
+  document.getElementById('logShN').textContent=logState.shNo;
 }
-function rotArrow(x1,y1,x2,y2,clr,mid){
-  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
-  if(len<14)return '';
-  const r=21,sx=x1+dx/len*r,sy=y1+dy/len*r,ex=x2-dx/len*r,ey=y2-dy/len*r;
-  return `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${clr}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="5,3" marker-end="url(#${mid})"/>`;
+function saveLog(){
+  const V=cur(); if(!V)return;
+  if(!V.pointLog)V.pointLog=[];
+  V.pointLog.push({team:logState.team,player:logState.player,shot:logState.shot,shNo:logState.shNo,setNo:V.setNo,score:[...V.p]});
+  V.shuttleNo=logState.shNo;
+  document.getElementById('logOverlay').style.display='none';
 }
-function rotPC(x,y,l,fill,op,dashed){
-  const tc=fill==='#D6F03C'?'#152019':'#fff';
-  return `<circle cx="${x}" cy="${y}" r="18" fill="${fill}" fill-opacity="${op}" stroke="rgba(255,255,255,${dashed?.4:.8})" stroke-width="2" ${dashed?'stroke-dasharray="4,3"':''}/><text x="${x}" y="${y+4}" text-anchor="middle" fill="${tc}" fill-opacity="${op}" font-size="11" font-weight="700" font-family="Noto Sans KR,sans-serif">${l}</text>`;
-}
-function renderRotSVG(){
-  const svg=document.getElementById('rotCourt');if(!svg)return;
-  const isOur=rot.poss==='our';
-  const op=rotGetPos(rot.ourForm,true),pp=rotGetPos(rot.oppForm,false);
-  let s=`<defs>
-    <marker id="rmS" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#D6F03C"/></marker>
-    <marker id="rmO" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(214,240,60,.85)"/></marker>
-    <marker id="rmP" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(224,91,75,.85)"/></marker>
-  </defs>
-  <rect width="280" height="380" fill="#0A3825"/>
-  <rect x="20" y="15" width="240" height="350" fill="#0F5A3A"/>
-  <rect x="20" y="15" width="240" height="350" fill="none" stroke="#F4F1E4" stroke-width="2"/>
-  <line x1="20" y1="34" x2="260" y2="34" stroke="rgba(244,241,228,.4)" stroke-width="1"/>
-  <line x1="20" y1="347" x2="260" y2="347" stroke="rgba(244,241,228,.4)" stroke-width="1"/>
-  <line x1="20" y1="136" x2="260" y2="136" stroke="rgba(244,241,228,.5)" stroke-width="1"/>
-  <line x1="20" y1="244" x2="260" y2="244" stroke="rgba(244,241,228,.5)" stroke-width="1"/>
-  <line x1="140" y1="136" x2="140" y2="244" stroke="rgba(244,241,228,.35)" stroke-width="1"/>
-  <rect x="14" y="182" width="252" height="16" fill="#F4F1E4" rx="3"/>
-  <text x="140" y="374" text-anchor="middle" fill="rgba(244,241,228,.4)" font-size="9" font-family="Noto Sans KR,sans-serif">우리팀</text>
-  <text x="140" y="13" text-anchor="middle" fill="rgba(244,241,228,.4)" font-size="9" font-family="Noto Sans KR,sans-serif">상대팀</text>`;
-  if(rot.done&&rot.nOf&&rot.nOpf){
-    const np=rotGetPos(rot.nOf,true),npp=rotGetPos(rot.nOpf,false);
-    const h=rotGetHitter(rot.shot,isOur?rot.ourForm:rot.oppForm,isOur);
-    const ld=rotGetLand(rot.shot,rot.dir,isOur);
-    const mx=(h.x+ld.x)/2,my=(h.y+ld.y)/2-48;
-    s+=`<path d="M${h.x},${h.y} Q${mx.toFixed(1)},${my.toFixed(1)} ${ld.x},${ld.y}" fill="none" stroke="#D6F03C" stroke-width="2.5" stroke-dasharray="7,4" marker-end="url(#rmS)"/>`;
-    s+=`<circle cx="${ld.x}" cy="${ld.y}" r="10" fill="rgba(214,240,60,.15)" stroke="#D6F03C" stroke-width="1.5"/>`;
-    op.forEach((p,i)=>{const n=np[i];s+=rotArrow(p.x,p.y,n.x,n.y,'rgba(214,240,60,.85)','rmO');});
-    pp.forEach((p,i)=>{const n=npp[i];s+=rotArrow(p.x,p.y,n.x,n.y,'rgba(224,91,75,.85)','rmP');});
-    np.forEach(p=>s+=rotPC(p.x,p.y,p.l,'#D6F03C',0.4,true));
-    npp.forEach(p=>s+=rotPC(p.x,p.y,p.l,'#E05B4B',0.4,true));
-  }
-  op.forEach(p=>s+=rotPC(p.x,p.y,p.l,'#D6F03C',1,false));
-  pp.forEach(p=>s+=rotPC(p.x,p.y,p.l,'#E05B4B',1,false));
-  const shx=isOur?(rot.ourForm==='front'?185:195):(rot.oppForm==='front'?95:195);
-  const shy=isOur?(rot.ourForm==='front'?332:282):(rot.oppForm==='front'?152:98);
-  s+=`<circle cx="${shx}" cy="${shy}" r="6" fill="white" stroke="#D6F03C" stroke-width="1.5"/><circle cx="${shx}" cy="${shy}" r="2.5" fill="#D6F03C"/>`;
-  svg.innerHTML=s;
-}
-function renderRotControls(){
-  const sp=document.getElementById('rotShotPicker');
-  if(sp)sp.innerHTML=ROT_SHOTS.map(s=>`<button class="${rot.shot===s.id?'on':''}" onclick="setRotShot('${s.id}')">${s.label}</button>`).join('');
-  const b1=document.getElementById('rotPossOur'),b2=document.getElementById('rotPossOpp');
-  if(b1)b1.classList.toggle('on',rot.poss==='our');
-  if(b2)b2.classList.toggle('on',rot.poss==='opp');
-  const d1=document.getElementById('rotDirStr'),d2=document.getElementById('rotDirCrs');
-  if(d1)d1.classList.toggle('on',rot.dir==='straight');
-  if(d2)d2.classList.toggle('on',rot.dir==='cross');
-  const of=document.getElementById('rotOurForm');if(of)of.textContent=rot.ourForm==='side'?'좌우 (수비)':'앞뒤 (공격)';
-  const oof=document.getElementById('rotOppForm');if(oof)oof.textContent=rot.oppForm==='side'?'좌우 (수비)':'앞뒤 (공격)';
-  const nb=document.getElementById('rotNextBtn');if(nb)nb.style.display=rot.done?'block':'none';
-  const tip=document.getElementById('rotTip');
-  if(tip){tip.style.display=rot.done?'block':'none';if(rot.done)tip.textContent=ROT_TIPS[rot.shot]||'';}
-}
-function renderRotAll(){renderRotSVG();renderRotControls();}
-function setPoss(p){rot.poss=p;rot.done=false;rot.nOf=null;rot.nOpf=null;renderRotAll();}
-function setRotShot(s){rot.shot=s;rot.done=false;rot.nOf=null;rot.nOpf=null;renderRotAll();}
-function setRotDir(d){rot.dir=d;rot.done=false;rot.nOf=null;rot.nOpf=null;renderRotAll();}
-function runSim(){
-  const r=ROT_RULES[rot.shot];if(!r)return;
-  const isOur=rot.poss==='our';
-  rot.nOf=isOur?r.h:r.o;rot.nOpf=isOur?r.o:r.h;
-  rot.done=true;renderRotAll();
-}
-function applyRot(){
-  if(!rot.nOf||!rot.nOpf)return;
-  rot.ourForm=rot.nOf;rot.oppForm=rot.nOpf;
-  rot.poss=rot.poss==='our'?'opp':'our';
-  rot.done=false;rot.nOf=null;rot.nOpf=null;
-  renderRotAll();
-}
-function resetRot(){
-  rot={poss:'our',ourForm:'side',oppForm:'side',shot:'smash',dir:'straight',done:false,nOf:null,nOpf:null};
-  renderRotAll();
-}
+function skipLog(){document.getElementById('logOverlay').style.display='none';}
 
 /* ================= 오늘 날짜 (한국 시간) ================= */
 function renderDate(){
@@ -1124,160 +1040,6 @@ function renderDate(){
   const days=['일','월','화','수','목','금','토'];
   const el=document.getElementById('todayLabel');
   if(el) el.textContent=days[KST.getDay()]+'요일 · '+(KST.getMonth()+1)+'월 '+KST.getDate()+'일';
-}
-/* ================= 진형 시뮬레이터 ================= */
-let rotPoss='our', rotShot=null, rotDir='straight';
-let rotFormOur='DEFENSE', rotFormOpp='DEFENSE';
-
-const ROT_SHOT_LIST=[
-  {id:'smash',n:'스매시'},{id:'drop',n:'드롭'},{id:'clear',n:'클리어'},
-  {id:'lob',n:'로브'},{id:'hairpin',n:'헤어핀'},{id:'drive',n:'드라이브'},{id:'push',n:'푸시'},
-];
-
-// viewBox="0 0 280 380", net at y=190
-const ROT_POS={
-  our:{
-    ATTACK:[{x:140,y:230},{x:140,y:348}],
-    DEFENSE:[{x:70,y:292},{x:210,y:292}],
-  },
-  opp:{
-    ATTACK:[{x:140,y:150},{x:140,y:32}],
-    DEFENSE:[{x:70,y:88},{x:210,y:88}],
-  }
-};
-
-const ROT_SIM_RULES={
-  smash:{
-    our:{ourF:'ATTACK', oppF:'DEFENSE',land:{x:140,y:58}, crLand:{x:210,y:58}, desc:'스매시 — 우리팀 앞뒤 공격 유지. 전위는 네트 압박, 후위는 스매시 후 중앙 이동. 상대팀 좌우 수비 전환.'},
-    opp:{ourF:'DEFENSE',oppF:'ATTACK', land:{x:140,y:322},crLand:{x:210,y:322},desc:'스매시 — 상대팀 앞뒤 공격. 우리팀 좌우 수비 전환. 좌우 균등 배치로 코트 커버.'},
-  },
-  drop:{
-    our:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:172},crLand:{x:210,y:172},desc:'드롭 — 우리팀 전위 네트 압박, 후위 중앙 대기. 상대 전위가 리프트 or 헤어핀 대응.'},
-    opp:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:208},crLand:{x:210,y:208},desc:'드롭 — 상대 전위 압박. 우리 전위가 리프트 or 헤어핀으로 대응. 양팀 앞뒤 유지.'},
-  },
-  clear:{
-    our:{ourF:'DEFENSE',oppF:'ATTACK', land:{x:140,y:22}, crLand:{x:210,y:22}, desc:'클리어 — 우리팀 좌우 수비 전환. 상대팀이 공격 기회를 얻어 앞뒤 진형으로 전환.'},
-    opp:{ourF:'ATTACK', oppF:'DEFENSE',land:{x:140,y:358},crLand:{x:210,y:358},desc:'클리어 — 우리 후위로 높은 공. 우리팀 앞뒤 공격 전환. 상대팀 좌우 수비.'},
-  },
-  lob:{
-    our:{ourF:'DEFENSE',oppF:'ATTACK', land:{x:140,y:22}, crLand:{x:210,y:22}, desc:'로브 — 우리팀 좌우 수비 전환. 상대 후위가 공격 기회. 수비 준비 필요.'},
-    opp:{ourF:'ATTACK', oppF:'DEFENSE',land:{x:140,y:358},crLand:{x:210,y:358},desc:'로브 — 우리 후위에게 높이 올림. 우리팀 앞뒤 공격 전환. 상대팀 수비.'},
-  },
-  hairpin:{
-    our:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:183},crLand:{x:210,y:183},desc:'헤어핀 — 양팀 전위 네트 교전. 후위는 리프트 대비 중앙 뒤쪽 대기.'},
-    opp:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:197},crLand:{x:210,y:197},desc:'헤어핀 — 양팀 전위 네트 교전. 후위는 리프트 대비 중앙 뒤쪽 대기.'},
-  },
-  drive:{
-    our:{ourF:'DEFENSE',oppF:'DEFENSE',land:{x:140,y:110},crLand:{x:210,y:110},desc:'드라이브 — 양팀 좌우 중립 진형. 빠른 수평 교환으로 반응 속도가 핵심.'},
-    opp:{ourF:'DEFENSE',oppF:'DEFENSE',land:{x:140,y:270},crLand:{x:210,y:270},desc:'드라이브 — 양팀 좌우 중립 진형. 빠른 수평 교환으로 반응 속도가 핵심.'},
-  },
-  push:{
-    our:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:175},crLand:{x:210,y:175},desc:'푸시 — 전위 공격적 네트 처리. 상대 전위 가로막기 or 리프트 대응.'},
-    opp:{ourF:'ATTACK', oppF:'ATTACK', land:{x:140,y:205},crLand:{x:210,y:205},desc:'푸시 — 상대 전위 공격. 우리 전위 가로막기 or 리프트 대응.'},
-  },
-};
-
-function setPoss(side){
-  rotPoss=side;
-  document.getElementById('rotPossOur').classList.toggle('on',side==='our');
-  document.getElementById('rotPossOpp').classList.toggle('on',side==='opp');
-  document.getElementById('rotTip').style.display='none';
-  document.getElementById('rotNextBtn').style.display='none';
-  renderRotCourt(null);
-}
-function setRotDir(dir){
-  rotDir=dir;
-  document.getElementById('rotDirStr').classList.toggle('on',dir==='straight');
-  document.getElementById('rotDirCrs').classList.toggle('on',dir==='cross');
-}
-function runSim(){
-  if(!rotShot){alert('샷을 선택해주세요');return;}
-  const r=ROT_SIM_RULES[rotShot][rotPoss];
-  const land=rotDir==='cross'?r.crLand:r.land;
-  const shotName=ROT_SHOT_LIST.find(s=>s.id===rotShot)?.n||rotShot;
-  const tip=document.getElementById('rotTip');
-  tip.style.display='block';
-  tip.innerHTML=`<b style="display:block;margin-bottom:4px">📌 ${shotName} (${rotDir==='straight'?'직선':'크로스'})</b>${r.desc}`;
-  const fmtNames={ATTACK:'앞뒤 (공격)',DEFENSE:'좌우 (수비)'};
-  document.getElementById('rotOurForm').textContent=fmtNames[r.ourF];
-  document.getElementById('rotOppForm').textContent=fmtNames[r.oppF];
-  renderRotCourt(land);
-  document.getElementById('rotNextBtn').style.display='block';
-  window._rotPending={ourF:r.ourF,oppF:r.oppF,nextPoss:rotPoss==='our'?'opp':'our'};
-}
-function applyRot(){
-  if(!window._rotPending)return;
-  rotFormOur=window._rotPending.ourF;
-  rotFormOpp=window._rotPending.oppF;
-  const nextPoss=window._rotPending.nextPoss;
-  window._rotPending=null;
-  rotShot=null;
-  document.getElementById('rotNextBtn').style.display='none';
-  document.getElementById('rotTip').style.display='none';
-  renderRotShotPicker();
-  setPoss(nextPoss);
-}
-function resetRot(){
-  rotPoss='our'; rotShot=null; rotDir='straight';
-  rotFormOur='DEFENSE'; rotFormOpp='DEFENSE';
-  window._rotPending=null;
-  document.getElementById('rotPossOur').classList.add('on');
-  document.getElementById('rotPossOpp').classList.remove('on');
-  document.getElementById('rotDirStr').classList.add('on');
-  document.getElementById('rotDirCrs').classList.remove('on');
-  document.getElementById('rotTip').style.display='none';
-  document.getElementById('rotNextBtn').style.display='none';
-  const fmtNames={ATTACK:'앞뒤 (공격)',DEFENSE:'좌우 (수비)'};
-  document.getElementById('rotOurForm').textContent=fmtNames['DEFENSE'];
-  document.getElementById('rotOppForm').textContent=fmtNames['DEFENSE'];
-  renderRotShotPicker();
-  renderRotCourt(null);
-}
-function renderRotShotPicker(){
-  const box=document.getElementById('rotShotPicker'); if(!box)return;
-  box.innerHTML=ROT_SHOT_LIST.map(s=>
-    `<button class="${rotShot===s.id?'on':''}" onclick="rotShot='${s.id}';renderRotShotPicker()">${s.n}</button>`
-  ).join('');
-}
-function renderRotCourt(shuttleLand){
-  const svg=document.getElementById('rotCourt'); if(!svg)return;
-  const ourPos=ROT_POS.our[rotFormOur];
-  const oppPos=ROT_POS.opp[rotFormOpp];
-  const ourActive=rotPoss==='our';
-  let s='';
-  s+='<rect x="0" y="0" width="280" height="380" fill="#0C4A32"/>';
-  s+='<rect x="10" y="10" width="260" height="360" fill="none" stroke="rgba(244,241,228,0.8)" stroke-width="1.2"/>';
-  s+='<line x1="38" y1="10" x2="38" y2="370" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
-  s+='<line x1="242" y1="10" x2="242" y2="370" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
-  s+='<line x1="10" y1="190" x2="270" y2="190" stroke="#F4F1E4" stroke-width="2.5"/>';
-  s+='<text x="273" y="194" fill="rgba(244,241,228,0.6)" font-size="8" font-family="sans-serif">N</text>';
-  s+='<line x1="140" y1="45" x2="140" y2="167" stroke="rgba(244,241,228,0.3)" stroke-width="0.8" stroke-dasharray="5,5"/>';
-  s+='<line x1="140" y1="213" x2="140" y2="335" stroke="rgba(244,241,228,0.3)" stroke-width="0.8" stroke-dasharray="5,5"/>';
-  s+='<line x1="10" y1="167" x2="270" y2="167" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
-  s+='<line x1="10" y1="213" x2="270" y2="213" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
-  s+='<line x1="10" y1="45" x2="270" y2="45" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
-  s+='<line x1="10" y1="335" x2="270" y2="335" stroke="rgba(244,241,228,0.3)" stroke-width="0.8"/>';
-  s+='<text x="140" y="115" text-anchor="middle" fill="rgba(244,241,228,0.15)" font-size="16" font-family="sans-serif">상대팀</text>';
-  s+='<text x="140" y="280" text-anchor="middle" fill="rgba(244,241,228,0.15)" font-size="16" font-family="sans-serif">우리팀</text>';
-  const fmtLbl={ATTACK:'앞뒤',DEFENSE:'좌우'};
-  s+=`<text x="140" y="183" text-anchor="middle" fill="rgba(244,241,228,0.45)" font-size="8" font-family="sans-serif">${fmtLbl[rotFormOpp]}</text>`;
-  s+=`<text x="140" y="201" text-anchor="middle" fill="rgba(244,241,228,0.45)" font-size="8" font-family="sans-serif">${fmtLbl[rotFormOur]}</text>`;
-  ourPos.forEach((p,i)=>{
-    s+=`<circle cx="${p.x}" cy="${p.y}" r="18" fill="${ourActive?'#D6F03C':'#3E7D5C'}" stroke="${ourActive?'#152019':'rgba(255,255,255,0.4)'}" stroke-width="2"/>`;
-    s+=`<text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="middle" fill="${ourActive?'#152019':'rgba(255,255,255,0.8)'}" font-size="11" font-weight="bold" font-family="sans-serif">${i===0?'나':'파'}</text>`;
-  });
-  oppPos.forEach((p,i)=>{
-    s+=`<circle cx="${p.x}" cy="${p.y}" r="18" fill="${!ourActive?'#E05B4B':'rgba(224,91,75,0.5)'}" stroke="${!ourActive?'#fff':'rgba(255,255,255,0.25)'}" stroke-width="2"/>`;
-    s+=`<text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="11" font-weight="bold" font-family="sans-serif">${i===0?'적1':'적2'}</text>`;
-  });
-  const sh=shuttleLand||{x:140,y:190};
-  s+=`<circle cx="${sh.x}" cy="${sh.y}" r="9" fill="#fff" stroke="#D6F03C" stroke-width="2.5"/>`;
-  s+=`<circle cx="${sh.x}" cy="${sh.y}" r="4.5" fill="#D6F03C"/>`;
-  svg.innerHTML=s;
-}
-function renderRotAll(){
-  renderRotShotPicker();
-  renderRotCourt(null);
 }
 
 loadAll();
