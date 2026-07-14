@@ -352,6 +352,19 @@ nav .live-n.on{display:flex}
       </div>
       <button id="logSaveBtn" onclick="saveLog()" disabled style="width:100%;padding:13px;border:none;border-radius:11px;background:var(--volt);color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;opacity:0.4;margin-bottom:14px">기록 완료 ✓</button>
     </div>
+    <!-- 서브권 선택 오버레이 -->
+    <div id="serveSelectOverlay" style="display:none;position:absolute;inset:0;background:rgba(15,30,20,.95);z-index:25;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:14px">
+      <div style="color:var(--volt);font-size:15px;font-weight:900;text-align:center">⚡ 첫 서브권을 선택하세요</div>
+      <button onclick="chooseServe(1)" style="width:100%;padding:18px 16px;border:2px solid rgba(244,241,228,.3);border-radius:16px;background:transparent;cursor:pointer;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:rgba(244,241,228,.5);letter-spacing:.08em;margin-bottom:4px">위팀 서브</div>
+        <div id="serveNameTop" style="font-size:16px;font-weight:900;color:var(--line)">—</div>
+      </button>
+      <div style="color:rgba(244,241,228,.35);font-size:12px">vs</div>
+      <button onclick="chooseServe(0)" style="width:100%;padding:18px 16px;border:2px solid rgba(244,241,228,.3);border-radius:16px;background:transparent;cursor:pointer;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:rgba(244,241,228,.5);letter-spacing:.08em;margin-bottom:4px">아래팀 서브</div>
+        <div id="serveNameBot" style="font-size:16px;font-weight:900;color:var(--line)">—</div>
+      </button>
+    </div>
   </div>
 
   <!-- ④ 기록 -->
@@ -680,7 +693,7 @@ function startMatch(){
   matches[selCourt]={court:selCourt,games:gamesN,pts,deuce:deuceOn,cap:pts+4,
     ccAt:courtChangeAt,matchType,shuttleNo:1,pointLog:[],
     teams:[[nm(0),nm(1)],[nm(2),nm(3)]],
-    p:[0,0],sets:[0,0],setNo:1,setScores:[],serveTeam:0,pos:[[0,1],[0,1]],
+    p:[0,0],sets:[0,0],setNo:1,setScores:[],serveTeam:0,serveChosen:false,pos:[[0,1],[0,1]],
     hist:[],over:false,saved:false,lastScorer:null,streak:0,mx:[0,0]};
   curCourt=selCourt;
   renderScore(); renderCourts(); go('score');
@@ -807,6 +820,15 @@ function renderScore(){
       if(team===st&&pIdx===serverIdx&&slotCourt[k]===parity){r.className='role sv';r.textContent='서브';}
       if(team===(1-st)&&pIdx===recvIdx&&slotCourt[k]===parity){r.className='role rc';r.textContent='리시브';}
     }
+  }
+  // 서브권 선택 오버레이
+  const serveOv=document.getElementById('serveSelectOverlay');
+  if(serveOv){
+    if(V.serveChosen===false){
+      serveOv.style.display='flex';
+      document.getElementById('serveNameTop').textContent=V.teams[1].join(' / ');
+      document.getElementById('serveNameBot').textContent=V.teams[0].join(' / ');
+    }else{serveOv.style.display='none';}
   }
 }
 
@@ -962,19 +984,16 @@ function renderDuoStat(content){
       const pName=(p.team===0?r.a:r.b)[p.player];
       if(!pName)return;
       if(selPlayer&&pName!==selPlayer)return;
-      if(!players[pName])players[pName]={name:pName,score:{},lose:{},total:0,totalLose:0};
+      if(!players[pName])players[pName]={name:pName,score:{},total:0};
       const ps=players[pName];
-      if(p.team===0){ps.score[p.shot]=(ps.score[p.shot]||0)+1;ps.total++;}
-      else{ps.lose[p.shot]=(ps.lose[p.shot]||0)+1;ps.totalLose++;}
+      ps.score[p.shot]=(ps.score[p.shot]||0)+1; ps.total++;
     });
   });
-  const pList=Object.values(players).sort((a,b)=>b.total+b.totalLose-(a.total+a.totalLose));
+  const pList=Object.values(players).sort((a,b)=>b.total-a.total);
   if(!pList.length){content.innerHTML='<div class="card"><div class="empty">샷 기록이 있는 경기가 없습니다.</div></div>';return;}
   content.innerHTML=pList.map(p=>{
     const scoreTop=Object.entries(p.score).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const loseTop=Object.entries(p.lose).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const total=p.total+p.totalLose;
-    const winRate=total?Math.round(p.total/total*100):0;
+    const total=p.total;
     const bar=(entries,maxVal,color)=>entries.map(([id,cnt])=>{
       const pct=maxVal?Math.round(cnt/maxVal*100):0;
       return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
@@ -987,12 +1006,11 @@ function renderDuoStat(content){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:15px;font-weight:900;color:var(--ink)">${p.name}</div>
         <div style="text-align:right">
-          <div style="font-size:18px;font-weight:900;color:var(--court)" class="num">${winRate}%</div>
-          <div style="font-size:10px;color:var(--ink-soft)">득점${p.total} · 실점${p.totalLose}</div>
+          <div style="font-size:18px;font-weight:900;color:var(--court)" class="num">${total}득점</div>
+          <div style="font-size:10px;color:var(--ink-soft)">기록된 샷 ${total}개</div>
         </div>
       </div>
-      ${scoreTop.length?`<div style="font-size:11px;font-weight:900;color:var(--court);margin-bottom:5px">득점 TOP 샷</div>${bar(scoreTop,p.total,'var(--court)')}`:''}
-      ${loseTop.length?`<div style="font-size:11px;font-weight:900;color:var(--red);margin-top:8px;margin-bottom:5px">실점 TOP 샷</div>${bar(loseTop,p.totalLose,'var(--red)')}`:''}
+      ${scoreTop.length?`<div style="font-size:11px;font-weight:900;color:var(--court);margin-bottom:5px">득점 TOP 샷</div>${bar(scoreTop,total,'var(--court)')}`:''} 
     </div>`;
   }).join('');
 }
@@ -1059,7 +1077,25 @@ async function delRecord(i){
 
 /* ---- 코트 체인지 ---- */
 function setCCAT(v){courtChangeAt=v;renderOpts();}
-function manualCourtChange(){toast('🔄 코트 체인지!');}
+function manualCourtChange(){
+  const V=cur(); if(!V||V.over)return;
+  snap(V);
+  [V.teams[0],V.teams[1]]=[V.teams[1],V.teams[0]];
+  [V.p[0],V.p[1]]=[V.p[1],V.p[0]];
+  [V.sets[0],V.sets[1]]=[V.sets[1],V.sets[0]];
+  [V.pos[0],V.pos[1]]=[V.pos[1],V.pos[0]];
+  [V.mx[0],V.mx[1]]=[V.mx[1],V.mx[0]];
+  V.serveTeam=1-V.serveTeam;
+  V.setScores=V.setScores.map(([a,b])=>[b,a]);
+  if(V.lastScorer!==null)V.lastScorer=1-V.lastScorer;
+  toast('🔄 코트 체인지!');
+  renderScore(); renderCourts();
+}
+function chooseServe(team){
+  const V=cur(); if(!V)return;
+  V.serveTeam=team; V.serveChosen=true;
+  renderScore();
+}
 
 /* ---- 결과 직접 입력 ---- */
 function toggleDirect(){
@@ -1216,9 +1252,8 @@ function pointSlot(key){
 }
 function renderLogOverlay(){
   const V=cur(); if(!V)return;
-  const isOur=logState.team===0;
-  document.getElementById('logTitle').textContent=isOur?'🟢 득점 기록':'🔴 실점 기록';
-  document.getElementById('logTypeBar').textContent=isOur?'어떤 샷으로 득점했나요?':'어떤 샷에 실점했나요?';
+  document.getElementById('logTitle').textContent='📝 득점 기록';
+  document.getElementById('logTypeBar').textContent='어떤 샷으로 득점했나요?';
   const players=V.teams[logState.team];
   document.getElementById('logPlayerRow').innerHTML=players.map((n,i)=>{
     const on=logState.player===i;
@@ -1321,12 +1356,12 @@ function closeEditPanel(){
   renderEditPointList();
 }
 function renderEditPanel(r){
-  const isOur=editState.team===0;
+  const isBot=editState.team===0;
   document.getElementById('editPanelTitle').textContent=`${editState.ptIdx+1}번째 포인트 편집`;
   document.getElementById('editPanelTypeBar').innerHTML=
-    `<button onclick="editSetTeam(0)" style="margin-right:6px;padding:4px 10px;border-radius:8px;border:1.5px solid ${!isOur?'var(--volt)':'rgba(244,241,228,.2)'};background:${!isOur?'var(--volt)':'transparent'};color:${!isOur?'var(--ink)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🟢 득점</button>`+
-    `<button onclick="editSetTeam(1)" style="padding:4px 10px;border-radius:8px;border:1.5px solid ${isOur?'var(--volt)':'rgba(244,241,228,.2)'};background:${isOur?'var(--volt)':'transparent'};color:${isOur?'var(--ink)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🔴 실점</button>`;
-  const players=isOur?r.a:r.b;
+    `<button onclick="editSetTeam(0)" style="margin-right:6px;padding:4px 10px;border-radius:8px;border:1.5px solid ${isBot?'var(--volt)':'rgba(244,241,228,.2)'};background:${isBot?'var(--volt)':'transparent'};color:${isBot?'var(--ink)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">아래팀 득점</button>`+
+    `<button onclick="editSetTeam(1)" style="padding:4px 10px;border-radius:8px;border:1.5px solid ${!isBot?'var(--volt)':'rgba(244,241,228,.2)'};background:${!isBot?'var(--volt)':'transparent'};color:${!isBot?'var(--ink)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">위팀 득점</button>`;
+  const players=isBot?r.a:r.b;
   document.getElementById('editPanelPlayers').innerHTML=players.map((n,i)=>{
     const on=editState.player===i;
     return `<button onclick="editSelPlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
