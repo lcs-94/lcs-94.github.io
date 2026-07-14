@@ -362,7 +362,7 @@ nav .live-n.on{display:flex}
     </div>
     <div class="note" id="sampleNote" style="display:none">아래는 예시 데이터입니다 — 경기를 기록하면 대체됩니다</div>
     <!-- 필터 탭 -->
-    <div style="display:flex;gap:8px;padding:8px 0 4px">
+    <div style="display:flex;gap:8px;padding:8px 20px 4px">
       <button id="rtab-all"        onclick="setRecFilter('all')"        style="padding:7px 18px;border-radius:20px;border:1.5px solid var(--court);background:var(--court);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">전체</button>
       <button id="rtab-normal"     onclick="setRecFilter('normal')"     style="padding:7px 18px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">일반</button>
       <button id="rtab-tournament" onclick="setRecFilter('tournament')" style="padding:7px 18px;border-radius:20px;border:1.5px solid #E3E4DA;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">대회</button>
@@ -437,8 +437,22 @@ nav .live-n.on{display:flex}
       <div class="eyebrow">Analysis</div>
       <h1>분석</h1>
     </div>
-    <div id="duoPlayerChips" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
-    <div id="duoTabBar" style="display:flex;gap:8px;margin-bottom:10px"></div>
+    <!-- 선수 검색 -->
+    <div id="duoSearchWrap" style="padding:4px 20px 8px;position:relative">
+      <div id="duoSelRow" style="display:none;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:700;color:var(--ink-soft)">필터:</span>
+        <span id="duoSelChip" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 14px;border-radius:20px;background:var(--court);color:#fff;font-size:13px;font-weight:700">
+          <span id="duoSelName"></span>
+          <button onclick="clearSelPlayer()" style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:14px;font-family:inherit;padding:0;line-height:1">✕</button>
+        </span>
+      </div>
+      <input id="duoSearchInput" type="text" placeholder="선수 이름으로 필터..."
+        style="width:100%;padding:10px 14px;border:1.5px solid #E3E4DA;border-radius:12px;font-family:inherit;font-size:13px;background:#FBFBF7;color:var(--ink);outline:none"
+        oninput="onDuoSearch(this.value)" onfocus="onDuoSearch(this.value)"
+        onblur="setTimeout(()=>{const d=document.getElementById('duoSearchDrop');if(d)d.style.display='none'},180)">
+      <div id="duoSearchDrop" style="display:none;position:absolute;left:20px;right:20px;top:calc(100% - 8px);background:var(--paper);border:1.5px solid #E3E4DA;border-radius:12px;z-index:10;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:180px;overflow-y:auto"></div>
+    </div>
+    <div id="duoTabBar" style="padding:0 20px;display:flex;gap:8px;margin-bottom:10px"></div>
     <div id="duoTabContent"></div>
   </div>
 
@@ -458,6 +472,25 @@ nav .live-n.on{display:flex}
     </div>
     <div class="section-t">등록 회원 <span id="memCount" style="color:var(--court)"></span></div>
     <div class="card" id="memList"></div>
+    <!-- 회원 편집 오버레이 -->
+    <div id="memEditOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,30,20,.82);z-index:50;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--paper);border-radius:20px;padding:20px;width:100%;max-width:350px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:16px;font-weight:900">회원 정보 수정</div>
+          <button onclick="closeMemEdit()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft);line-height:1">✕</button>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px">이름</div>
+        <input id="memEditName" style="width:100%;padding:10px 12px;border:1.5px solid #E3E4DA;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;background:#FBFBF7;color:var(--ink);outline:none" placeholder="이름">
+        <div style="font-size:12px;font-weight:700;color:var(--ink-soft);margin:14px 0 6px">급수</div>
+        <div class="opt-chips" id="memEditGrade"></div>
+        <div style="font-size:12px;font-weight:700;color:var(--ink-soft);margin:14px 0 6px">나이대</div>
+        <div class="opt-chips" id="memEditAge"></div>
+        <div style="display:flex;gap:8px;margin-top:18px">
+          <button onclick="closeMemEdit()" style="flex:1;padding:12px;border:1.5px solid #E3E4DA;border-radius:11px;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">취소</button>
+          <button onclick="saveMemEdit()" style="flex:2;padding:12px;border:none;border-radius:11px;background:var(--court);color:var(--line);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">저장 ✓</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <nav>
@@ -843,20 +876,36 @@ function renderRecords(){
 
 /* ================= 분석 ================= */
 function setSelPlayer(name){selPlayer=selPlayer===name?null:name;renderDuo();}
+function clearSelPlayer(){selPlayer=null;renderDuo();}
+function onDuoSearch(q){
+  const allPlayers=new Set();
+  records.forEach(r=>{[...r.a,...r.b].forEach(n=>allPlayers.add(n));});
+  const arr=[...allPlayers];
+  const matches=q.trim()?arr.filter(n=>n.includes(q.trim())):arr;
+  const drop=document.getElementById('duoSearchDrop');
+  if(!drop)return;
+  if(!matches.length){drop.style.display='none';return;}
+  drop.style.display='block';
+  drop.innerHTML=matches.map(n=>{
+    const on=selPlayer===n;
+    return `<div onmousedown="pickDuoPlayer('${n.replace(/'/g,"\\'")}') " style="padding:11px 14px;font-size:13px;font-weight:700;color:${on?'var(--court)':'var(--ink)'};cursor:pointer;border-bottom:1px solid #F0F1E8;background:${on?'#F5FBF0':'transparent'}">${on?'✓ ':''}${n}</div>`;
+  }).join('');
+}
+function pickDuoPlayer(name){
+  setSelPlayer(name);
+  const drop=document.getElementById('duoSearchDrop');
+  const inp=document.getElementById('duoSearchInput');
+  if(drop)drop.style.display='none';
+  if(inp)inp.value='';
+}
 function setDuoTab(t){duoTab=t;renderDuo();}
 
 function renderDuo(){
-  // 선수 칩
-  const allPlayers=new Set();
-  records.forEach(r=>{[...r.a,...r.b].forEach(n=>allPlayers.add(n));});
-  const chipsBox=document.getElementById('duoPlayerChips');
-  if(chipsBox){
-    if(!allPlayers.size){chipsBox.innerHTML='';}
-    else{chipsBox.innerHTML=[...allPlayers].map(n=>{
-      const on=selPlayer===n;
-      return `<button onclick="setSelPlayer('${n.replace(/'/g,"\\'")}') " style="flex:none;padding:6px 14px;border-radius:20px;border:1.5px solid ${on?'var(--court)':'#E3E4DA'};background:${on?'var(--court)':'transparent'};color:${on?'#fff':'var(--ink-soft)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">${n}</button>`;
-    }).join('');}
-  }
+  // 선택된 선수 표시
+  const selRow=document.getElementById('duoSelRow');
+  const selNameEl=document.getElementById('duoSelName');
+  if(selRow){selRow.style.display=selPlayer?'flex':'none';}
+  if(selNameEl&&selPlayer)selNameEl.textContent=selPlayer;
   // 탭 바
   const tabBar=document.getElementById('duoTabBar');
   if(tabBar)tabBar.innerHTML=[['pair','파트너'],['stat','선수 득실']].map(([t,l])=>{
@@ -972,8 +1021,32 @@ function renderMembers(){
     `<div class="mem-row"><div class="avatar">${m.n[0]}</div>
       <div class="nm">${m.n}<small>${m.a}</small></div>
       <span class="badge ${clsG(m.g)}">${lblG(m.g)}</span>
+      <button onclick="openMemEdit(${i})" style="background:none;border:1.5px solid #E3E4DA;border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;color:var(--ink-soft);font-family:inherit;font-weight:700;margin-right:4px">수정</button>
       <button class="del" onclick="delMember(${i})">✕</button></div>`).join('')
     :'<div class="empty">위에서 첫 회원을 등록해보세요.</div>';
+}
+let memEditIdx=-1, memEditG='B', memEditA='30대';
+function openMemEdit(i){
+  memEditIdx=i;
+  const m=members[i];
+  memEditG=m.g; memEditA=m.a;
+  document.getElementById('memEditName').value=m.n;
+  renderMemEditChips();
+  document.getElementById('memEditOverlay').style.display='flex';
+}
+function closeMemEdit(){document.getElementById('memEditOverlay').style.display='none';}
+function renderMemEditChips(){
+  document.getElementById('memEditGrade').innerHTML=GRADES.map(g=>
+    `<button class="${memEditG===g?'on':''}" onclick="memEditG='${g}';renderMemEditChips()">${lblG(g)}</button>`).join('');
+  document.getElementById('memEditAge').innerHTML=AGES.map(a=>
+    `<button class="${memEditA===a?'on':''}" onclick="memEditA='${a}';renderMemEditChips()">${a}</button>`).join('');
+}
+async function saveMemEdit(){
+  const n=document.getElementById('memEditName').value.trim();
+  if(!n)return;
+  members[memEditIdx]={n,g:memEditG,a:memEditA};
+  await saveMembers(); renderMembers(); renderSetup();
+  closeMemEdit();
 }
 
 function renderAll(){renderCourts();renderScore();renderRecords();renderDuo();renderMembers();renderRegChips();renderSetup();renderOpts();}
