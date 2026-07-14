@@ -336,10 +336,10 @@ nav .live-n.on{display:flex}
     <div id="logOverlay" style="display:none;position:absolute;inset:0;background:var(--court-deep);z-index:20;flex-direction:column;overflow-y:auto;padding:14px 16px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div id="logTitle" style="color:var(--volt);font-size:15px;font-weight:900">📝 득점 기록</div>
-        <button onclick="skipLog()" style="font-size:12px;font-weight:700;color:rgba(244,241,228,.6);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px">건너뛰기</button>
+        <button onclick="onLogSkip()" style="font-size:12px;font-weight:700;color:rgba(244,241,228,.6);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px">건너뛰기</button>
       </div>
       <div id="logTypeBar" style="font-size:11px;font-weight:700;color:rgba(244,241,228,.6);margin-bottom:10px"></div>
-      <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">득점 선수</div>
+      <div id="logPlayerLabel" style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">득점 선수</div>
       <div style="display:flex;gap:7px;margin-bottom:12px" id="logPlayerRow"></div>
       <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">샷 종류</div>
       <div id="logShotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px"></div>
@@ -350,7 +350,7 @@ nav .live-n.on{display:flex}
         <button onclick="logShNo(1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">+</button>
         <span style="color:rgba(244,241,228,.5);font-size:11px">번째</span>
       </div>
-      <button id="logSaveBtn" onclick="saveLog()" disabled style="width:100%;padding:13px;border:none;border-radius:11px;background:var(--volt);color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;opacity:0.4;margin-bottom:14px">기록 완료 ✓</button>
+      <button id="logSaveBtn" onclick="onLogSave()" disabled style="width:100%;padding:13px;border:none;border-radius:11px;background:var(--volt);color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;opacity:0.4;margin-bottom:14px">다음 (실점 기록) →</button>
     </div>
     <!-- 서브권 선택 오버레이 -->
     <div id="serveSelectOverlay" style="display:none;position:absolute;inset:0;background:rgba(15,30,20,.95);z-index:25;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:14px">
@@ -982,18 +982,29 @@ function renderDuoStat(content){
     if(!r.plog||!r.plog.length)return;
     r.plog.forEach(p=>{
       const pName=(p.team===0?r.a:r.b)[p.player];
-      if(!pName)return;
-      if(selPlayer&&pName!==selPlayer)return;
-      if(!players[pName])players[pName]={name:pName,score:{},total:0};
-      const ps=players[pName];
-      ps.score[p.shot]=(ps.score[p.shot]||0)+1; ps.total++;
+      const loseTeam=1-p.team;
+      const loseName=p.losePlayer!=null?(loseTeam===0?r.a:r.b)[p.losePlayer]:null;
+      // 득점 집계
+      if(pName&&(!selPlayer||pName===selPlayer)){
+        if(!players[pName])players[pName]={name:pName,score:{},lose:{},total:0,totalLose:0};
+        players[pName].score[p.shot]=(players[pName].score[p.shot]||0)+1;
+        players[pName].total++;
+      }
+      // 실점 집계 (losePlayer/loseShot이 기록된 경우)
+      if(loseName&&p.loseShot&&(!selPlayer||loseName===selPlayer)){
+        if(!players[loseName])players[loseName]={name:loseName,score:{},lose:{},total:0,totalLose:0};
+        players[loseName].lose[p.loseShot]=(players[loseName].lose[p.loseShot]||0)+1;
+        players[loseName].totalLose++;
+      }
     });
   });
-  const pList=Object.values(players).sort((a,b)=>b.total-a.total);
+  const pList=Object.values(players).sort((a,b)=>(b.total+b.totalLose)-(a.total+a.totalLose));
   if(!pList.length){content.innerHTML='<div class="card"><div class="empty">샷 기록이 있는 경기가 없습니다.</div></div>';return;}
   content.innerHTML=pList.map(p=>{
     const scoreTop=Object.entries(p.score).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const total=p.total;
+    const loseTop=Object.entries(p.lose).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const total=p.total+p.totalLose;
+    const winRate=total?Math.round(p.total/total*100):0;
     const bar=(entries,maxVal,color)=>entries.map(([id,cnt])=>{
       const pct=maxVal?Math.round(cnt/maxVal*100):0;
       return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
@@ -1006,11 +1017,12 @@ function renderDuoStat(content){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:15px;font-weight:900;color:var(--ink)">${p.name}</div>
         <div style="text-align:right">
-          <div style="font-size:18px;font-weight:900;color:var(--court)" class="num">${total}득점</div>
-          <div style="font-size:10px;color:var(--ink-soft)">기록된 샷 ${total}개</div>
+          <div style="font-size:18px;font-weight:900;color:var(--court)" class="num">${winRate}%</div>
+          <div style="font-size:10px;color:var(--ink-soft)">득점${p.total} · 실점${p.totalLose}</div>
         </div>
       </div>
-      ${scoreTop.length?`<div style="font-size:11px;font-weight:900;color:var(--court);margin-bottom:5px">득점 TOP 샷</div>${bar(scoreTop,total,'var(--court)')}`:''} 
+      ${scoreTop.length?`<div style="font-size:11px;font-weight:900;color:var(--court);margin-bottom:5px">득점 TOP 샷</div>${bar(scoreTop,p.total,'var(--court)')}`:''} 
+      ${loseTop.length?`<div style="font-size:11px;font-weight:900;color:var(--red);margin-top:8px;margin-bottom:5px">실점 TOP 샷</div>${bar(loseTop,p.totalLose,'var(--red)')}`:''} 
     </div>`;
   }).join('');
 }
@@ -1230,6 +1242,7 @@ const SHOT_TYPES=[
   {id:'block',     n:'블록',          cat:'def'},
 ];
 let logState={team:0,player:null,shot:null,shNo:1};
+let logPhase=1, loseLogState={player:null,shot:null};
 
 function setMatchType(v){matchType=v;renderOpts();}
 
@@ -1237,6 +1250,7 @@ function showPointLog(team){
   const V=cur(); if(!V)return;
   const pre=pendingPlayer; pendingPlayer=null;
   logState={team,player:pre,shot:null,shNo:V.shuttleNo||1};
+  logPhase=1; loseLogState={player:null,shot:null};
   const ov=document.getElementById('logOverlay');
   if(!ov)return;
   ov.style.display='flex';
@@ -1252,32 +1266,65 @@ function pointSlot(key){
 }
 function renderLogOverlay(){
   const V=cur(); if(!V)return;
-  document.getElementById('logTitle').textContent='📝 득점 기록';
-  document.getElementById('logTypeBar').textContent='어떤 샷으로 득점했나요?';
-  const players=V.teams[logState.team];
-  document.getElementById('logPlayerRow').innerHTML=players.map((n,i)=>{
-    const on=logState.player===i;
-    return `<button onclick="logSelPlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
-  }).join('');
-  // 카테고리별 그룹
-  let shotHtml='';
-  SHOT_CATS.forEach(cat=>{
-    const shots=SHOT_TYPES.filter(s=>s.cat===cat.id);
-    if(!shots.length)return;
-    shotHtml+=`<div style="grid-column:1/-1;font-size:9px;font-weight:900;color:rgba(244,241,228,.4);margin:4px 0 1px;text-transform:uppercase;letter-spacing:.5px">${cat.n}</div>`;
-    shots.forEach(s=>{
-      const on=logState.shot===s.id;
-      shotHtml+=`<button onclick="logSelShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
-    });
-  });
-  document.getElementById('logShotGrid').innerHTML=shotHtml;
-  document.getElementById('logShN').textContent=logState.shNo;
-  const ok=logState.player!==null&&logState.shot!==null;
+  const pl=document.getElementById('logPlayerLabel');
   const sb=document.getElementById('logSaveBtn');
-  sb.disabled=!ok; sb.style.opacity=ok?'1':'0.4';
+  if(logPhase===1){
+    document.getElementById('logTitle').textContent='📝 득점 기록';
+    document.getElementById('logTypeBar').textContent='어떤 샷으로 득점했나요?';
+    if(pl)pl.textContent='득점 선수';
+    const players=V.teams[logState.team];
+    document.getElementById('logPlayerRow').innerHTML=players.map((n,i)=>{
+      const on=logState.player===i;
+      return `<button onclick="logSelPlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
+    }).join('');
+    let shotHtml='';
+    SHOT_CATS.forEach(cat=>{
+      const shots=SHOT_TYPES.filter(s=>s.cat===cat.id);
+      if(!shots.length)return;
+      shotHtml+=`<div style="grid-column:1/-1;font-size:9px;font-weight:900;color:rgba(244,241,228,.4);margin:4px 0 1px;text-transform:uppercase;letter-spacing:.5px">${cat.n}</div>`;
+      shots.forEach(s=>{
+        const on=logState.shot===s.id;
+        shotHtml+=`<button onclick="logSelShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--volt)':'rgba(244,241,228,.3)'};background:${on?'var(--volt)':'transparent'};color:${on?'var(--ink)':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
+      });
+    });
+    document.getElementById('logShotGrid').innerHTML=shotHtml;
+    document.getElementById('logShN').textContent=logState.shNo;
+    const ok=logState.player!==null&&logState.shot!==null;
+    sb.disabled=!ok; sb.style.opacity=ok?'1':'0.4'; sb.textContent='다음 (실점 기록) →';
+  }else{
+    document.getElementById('logTitle').textContent='🔴 실점 기록 (선택)';
+    document.getElementById('logTypeBar').textContent='상대팀 중 누가 어떤 샷에 실점했나요?';
+    if(pl)pl.textContent='실점 선수';
+    const loseTeam=1-logState.team;
+    const players=V.teams[loseTeam];
+    document.getElementById('logPlayerRow').innerHTML=players.map((n,i)=>{
+      const on=loseLogState.player===i;
+      return `<button onclick="logSelPlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--red)':'rgba(244,241,228,.3)'};background:${on?'rgba(224,91,75,.25)':'transparent'};color:${on?'#ffb0a0':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
+    }).join('');
+    let shotHtml='';
+    SHOT_CATS.forEach(cat=>{
+      const shots=SHOT_TYPES.filter(s=>s.cat===cat.id);
+      if(!shots.length)return;
+      shotHtml+=`<div style="grid-column:1/-1;font-size:9px;font-weight:900;color:rgba(244,241,228,.4);margin:4px 0 1px;text-transform:uppercase;letter-spacing:.5px">${cat.n}</div>`;
+      shots.forEach(s=>{
+        const on=loseLogState.shot===s.id;
+        shotHtml+=`<button onclick="logSelShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--red)':'rgba(244,241,228,.3)'};background:${on?'rgba(224,91,75,.25)':'transparent'};color:${on?'#ffb0a0':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
+      });
+    });
+    document.getElementById('logShotGrid').innerHTML=shotHtml;
+    document.getElementById('logShN').textContent='—';
+    const ok=loseLogState.player!==null&&loseLogState.shot!==null;
+    sb.disabled=!ok; sb.style.opacity=ok?'1':'0.4'; sb.textContent='기록 완료 ✓';
+  }
 }
-function logSelPlayer(i){logState.player=i;renderLogOverlay();}
-function logSelShot(id){logState.shot=id;renderLogOverlay();}
+function logSelPlayer(i){
+  if(logPhase===1){logState.player=i;}else{loseLogState.player=i;}
+  renderLogOverlay();
+}
+function logSelShot(id){
+  if(logPhase===1){logState.shot=id;}else{loseLogState.shot=id;}
+  renderLogOverlay();
+}
 function logShNo(d){
   logState.shNo=Math.max(1,logState.shNo+d);
   document.getElementById('logShN').textContent=logState.shNo;
@@ -1287,9 +1334,21 @@ function saveLog(){
   if(!V.pointLog)V.pointLog=[];
   V.pointLog.push({team:logState.team,player:logState.player,shot:logState.shot,shNo:logState.shNo,setNo:V.setNo,score:[...V.p]});
   V.shuttleNo=logState.shNo;
-  document.getElementById('logOverlay').style.display='none';
+  logPhase=2; loseLogState={player:null,shot:null};
+  renderLogOverlay();
 }
-function skipLog(){document.getElementById('logOverlay').style.display='none';}
+function saveLoseLog(){
+  const V=cur(); if(!V)return;
+  const last=V.pointLog&&V.pointLog[V.pointLog.length-1];
+  if(last&&loseLogState.player!=null&&loseLogState.shot){
+    last.losePlayer=loseLogState.player; last.loseShot=loseLogState.shot;
+  }
+  document.getElementById('logOverlay').style.display='none';
+  logPhase=1; loseLogState={player:null,shot:null};
+}
+function onLogSave(){if(logPhase===1)saveLog();else saveLoseLog();}
+function onLogSkip(){document.getElementById('logOverlay').style.display='none';logPhase=1;loseLogState={player:null,shot:null};}
+function skipLog(){document.getElementById('logOverlay').style.display='none';logPhase=1;loseLogState={player:null,shot:null};}
 
 /* ================= 기록 필터 ================= */
 function setRecFilter(v){recFilter=v;renderRecords();}
