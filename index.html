@@ -711,14 +711,21 @@ function startMatch(){
     ccAt:courtChangeAt,matchType,shuttleNo:1,pointLog:[],
     teams:[[nm(0),nm(1)],[nm(2),nm(3)]],
     p:[0,0],sets:[0,0],setNo:1,setScores:[],serveTeam:0,serveChosen:false,pos:[[0,1],[0,1]],
-    hist:[],over:false,saved:false,lastScorer:null,streak:0,mx:[0,0]};
+    hist:[],over:false,saved:false,lastScorer:null,streak:0,mx:[0,0],
+    lastPtTime:Date.now(),pendingDur:0,setStartTime:Date.now()};
   curCourt=selCourt;
   renderScore(); renderCourts(); go('score');
 }
 function snap(V){V.hist.push(JSON.stringify({p:V.p,sets:V.sets,setNo:V.setNo,setScores:V.setScores,
-  serveTeam:V.serveTeam,pos:V.pos,over:V.over,lastScorer:V.lastScorer,streak:V.streak,mx:V.mx}));}
+  serveTeam:V.serveTeam,pos:V.pos,over:V.over,lastScorer:V.lastScorer,streak:V.streak,mx:V.mx,lastPtTime:V.lastPtTime,pendingDur:V.pendingDur,setStartTime:V.setStartTime}));}
 function point(t){
   const V=cur(); if(!V||V.over)return;
+  // 랠리 시간 계산 (서브권 선택 전이면 skip)
+  if(V.serveChosen!==false){
+    const now=Date.now();
+    V.pendingDur=V.lastPtTime?Math.max(0,Math.round((now-V.lastPtTime)/1000)):0;
+    V.lastPtTime=now;
+  }else{V.pendingDur=0;}
   snap(V);
   V.streak=(V.lastScorer===t)?V.streak+1:1;
   V.lastScorer=t;
@@ -739,6 +746,7 @@ function point(t){
       toast(V.setNo+'게임 종료 '+V.p[0]+':'+V.p[1]);
       V.setNo++; V.p=[0,0]; V.serveTeam=t; V.pos=[[0,1],[0,1]];
       V.lastScorer=null; V.streak=0;
+      V.setStartTime=Date.now(); V.lastPtTime=Date.now();
     }
   } else if(V.ccAt && (V.p[0]===V.ccAt||V.p[1]===V.ccAt)){
     toast('🔄 코트 체인지! ('+V.p[0]+':'+V.p[1]+')');
@@ -913,6 +921,12 @@ function renderRecords(){
       const extra=g===0?(r.mx?` · 최다연속 ${Math.max(...r.mx)}점`:''):'';
       const typeBadge=g===0&&r.type==='tournament'?' <span style="background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:2px 6px;border-radius:8px">대회</span>':'';
       const editBtn=`<button onclick="openEditOverlay(${i},${g})" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1.2px solid rgba(0,0,0,.15);background:${hasPlog?'var(--volt)':'transparent'};color:${hasPlog?'var(--ink)':'var(--ink-soft)'};font-family:inherit;font-weight:700;cursor:pointer;margin-left:4px">${hasPlog?'📊 편집':'+ 샷 기록'}</button>`;
+      // 게임별 시간 계산
+      const gPlog=(r.plog||[]).filter(p=>(p.setNo||1)===(g+1));
+      const gDurs=gPlog.map(p=>p.dur||0).filter(d=>d>0);
+      const gTotal=gDurs.reduce((a,b)=>a+b,0);
+      const gAvg=gDurs.length?Math.round(gTotal/gDurs.length*10)/10:0;
+      const timeLine=gDurs.length?`<div style="font-size:10px;color:var(--ink-soft);padding:2px 0 4px">⏱ ${Math.floor(gTotal/60)}분 ${gTotal%60}초 · 평균 랠리 <b class="num">${gAvg}</b>초</div>`:'';
       html+=`<div class="rec-row" style="${g>0?'border-top:none;padding-top:3px':''}">
         <div class="meta" style="display:flex;justify-content:space-between;align-items:center">
           <span>${g===0?r.d+ct:''}${typeBadge}${glbl}${extra}${editBtn}</span>
@@ -923,7 +937,7 @@ function renderRecords(){
           <span style="color:#B9C2B4;font-size:11px">vs</span>
           <span class="pair ${gw===1?'win':gw===0?'lose':''}">${r.b.join('·')}${gw===1?' ✓':''}</span>
           <span class="scs num">${sc[0]}:${sc[1]}</span>
-        </div></div>`;
+        </div>${timeLine}</div>`;
     });
   });
   box.innerHTML=html;
@@ -1118,6 +1132,7 @@ function openMemDetail(name){
   // 집계
   let matches=0, wins=0, losses=0, draws=0;
   const partners={}, opponents={}, myShots={}, loseShots={};
+  let totalDur=0, rallyCount=0;
   records.forEach(r=>{
     const inA=r.a.includes(name), inB=r.b.includes(name);
     if(!inA&&!inB)return;
@@ -1135,9 +1150,11 @@ function openMemDetail(name){
         const loser=(p.team===0?r.b:r.a)[p.losePlayer];
         if(loser===name&&p.loseShot)loseShots[p.loseShot]=(loseShots[p.loseShot]||0)+1;
       }
+      if(p.dur){totalDur+=p.dur;rallyCount++;}
     });
   });
   const winRate=matches?Math.round(wins/matches*100):0;
+  const avgRally=rallyCount?Math.round(totalDur/rallyCount*10)/10:0;
   const topEntries=(obj,n=5)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);
   const list=(entries,color)=>entries.length?entries.map(([k,v])=>`<span style="display:inline-block;padding:4px 10px;border-radius:14px;background:${color};font-size:12px;font-weight:700;margin:2px 4px 2px 0">${k} <b class="num">${v}</b></span>`).join(''):'<div style="font-size:12px;color:var(--ink-soft);opacity:.6">기록 없음</div>';
   const shotList=entries=>entries.length?entries.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px"><span>${getShotName(k)}</span><b class="num">${v}회</b></div>`).join(''):'<div style="font-size:12px;color:var(--ink-soft);opacity:.6">기록 없음</div>';
@@ -1147,6 +1164,7 @@ function openMemDetail(name){
       <div style="text-align:center;padding:10px 4px;background:#F0F1E8;border-radius:10px"><div class="num" style="font-size:22px;font-weight:900;color:var(--court)">${winRate}%</div><div style="font-size:10px;color:var(--ink-soft);font-weight:700">승률</div></div>
       <div style="text-align:center;padding:10px 4px;background:#F0F1E8;border-radius:10px"><div class="num" style="font-size:14px;font-weight:900;color:var(--ink)">${wins}·${losses}${draws?'·'+draws:''}</div><div style="font-size:10px;color:var(--ink-soft);font-weight:700">승·패${draws?'·무':''}</div></div>
     </div>
+    ${avgRally?`<div style="display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--ink-soft);margin-bottom:10px;padding:6px 10px;background:#F0F1E8;border-radius:8px"><span>⏱ 평균 랠리 <b class="num" style="color:var(--court)">${avgRally}</b>초</span><span>총 랠리 <b class="num" style="color:var(--court)">${rallyCount}</b>회</span></div>`:''}
     <div style="font-size:12px;font-weight:900;color:var(--court);margin:12px 0 6px">🤝 자주 함께한 파트너</div>
     <div>${list(topEntries(partners),'#E8F5E4')}</div>
     <div style="font-size:12px;font-weight:900;color:var(--court);margin:14px 0 6px">🎯 자주 만난 상대</div>
@@ -1191,6 +1209,7 @@ function chooseServe(team, playerIdx){
     const other=1-playerIdx;
     V.pos[team]=[playerIdx,other];
   }
+  V.lastPtTime=Date.now(); V.setStartTime=Date.now();
   renderScore();
 }
 function reChooseServe(){
@@ -1226,7 +1245,14 @@ function renderMiniStats(){
     const s=stats[n]||{s:0,l:0};
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0"><span style="font-weight:700">${n}</span><span style="font-family:'Archivo Black'">🟢 ${s.s} · 🔴 ${s.l}</span></div>`;
   }).join('');
-  box.innerHTML=`<div style="font-size:10px;color:rgba(244,241,228,.5);margin-bottom:4px">${V.setNo}게임 · 득점/실점</div>${rows}`;
+  // 랠리 시간 통계
+  const durs=plog.map(p=>p.dur||0).filter(d=>d>0);
+  const avgDur=durs.length?Math.round(durs.reduce((a,b)=>a+b,0)/durs.length*10)/10:0;
+  const maxDur=durs.length?Math.max(...durs):0;
+  const gameElapsed=V.setStartTime?Math.round((Date.now()-V.setStartTime)/1000):0;
+  const fmtTime=s=>s>=60?Math.floor(s/60)+'분 '+(s%60)+'초':s+'초';
+  const rallyLine=`<div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(214,240,60,.75);padding:5px 0 2px;border-top:1px dashed rgba(244,241,228,.15);margin-top:5px"><span>⏱ 평균 랠리 <b class="num">${avgDur||'—'}</b>초</span><span>최장 <b class="num">${maxDur||'—'}</b>초</span><span>경과 <b class="num">${fmtTime(gameElapsed)}</b></span></div>`;
+  box.innerHTML=`<div style="font-size:10px;color:rgba(244,241,228,.5);margin-bottom:4px">${V.setNo}게임 · 득점/실점</div>${rows}${rallyLine}`;
 }
 
 /* ---- 결과 직접 입력 ---- */
@@ -1459,7 +1485,7 @@ function logShNo(d){
 function saveLog(){
   const V=cur(); if(!V)return;
   if(!V.pointLog)V.pointLog=[];
-  V.pointLog.push({team:logState.team,player:logState.player,shot:logState.shot,shNo:logState.shNo,setNo:V.setNo,score:[...V.p]});
+  V.pointLog.push({team:logState.team,player:logState.player,shot:logState.shot,shNo:logState.shNo,setNo:V.setNo,score:[...V.p],dur:V.pendingDur||0});
   V.shuttleNo=logState.shNo;
   logPhase=2; loseLogState={player:null,shot:null};
   renderLogOverlay();
@@ -1515,12 +1541,13 @@ function renderEditPointList(){
     const playerName=p&&p.player!=null?(p.team===0?r.a[p.player]:r.b[p.player]):'';
     const scoreStr=p?`${p.score[0]}:${p.score[1]}`:`${pi+1}번째`;
     const shStr=p?` · 구 ${p.shNo}번째`:'';
+    const durStr=p&&p.dur?` · ⏱ ${p.dur}초`:'';
     const hasDat=!!p;
     html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(244,241,228,.05);border:1px solid rgba(244,241,228,.12)">
       <div style="min-width:42px;text-align:center;font-size:12px;font-weight:900;color:var(--volt)" class="num">${scoreStr}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:700;color:var(--line)">${teamLbl}${playerName?' · '+playerName:''}</div>
-        <div style="font-size:11px;color:rgba(244,241,228,.45)">${hasDat?shotInfo+shStr:'미기록'}</div>
+        <div style="font-size:11px;color:rgba(244,241,228,.45)">${hasDat?shotInfo+shStr+durStr:'미기록'}</div>
         ${p&&p.losePlayer!=null&&p.loseShot?`<div style="font-size:10px;color:rgba(255,176,160,.75);margin-top:2px">↳ 실점: ${(p.team===0?r.b:r.a)[p.losePlayer]||''} · ${getShotName(p.loseShot)}</div>`:''}
       </div>
       <button onclick="openEditPanel(${pi})" style="padding:5px 10px;border-radius:8px;border:1.2px solid ${hasDat?'var(--volt)':'rgba(244,241,228,.3)'};background:transparent;color:${hasDat?'var(--volt)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">${hasDat?'수정':'추가'}</button>
