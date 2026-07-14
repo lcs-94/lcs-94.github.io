@@ -324,6 +324,9 @@ nav .live-n.on{display:flex}
       <div class="score-ctl" style="flex-wrap:wrap">
         <button onclick="undo()">← 실행취소</button>
         <button onclick="manualCourtChange()">🔄 코트 체인지</button>
+        <button id="reServeBtn" onclick="reChooseServe()" style="display:none">⚡ 서브 다시 선택</button>
+        <button onclick="toggleMiniStats()" id="msToggle" style="flex:1 0 100%">📊 이번 게임 통계</button>
+        <div id="miniStats" style="display:none;flex:1 0 100%;padding:10px 12px;background:rgba(214,240,60,.08);border:1px solid rgba(214,240,60,.25);border-radius:10px;font-size:11px;color:var(--line)"></div>
 
         <button onclick="quitMatch()" style="flex:1 0 100%">경기 취소</button>
         <button class="volt" id="doneBtn" onclick="finishGo()" style="display:none;flex:1 0 100%">기록 저장 ✓</button>
@@ -335,7 +338,10 @@ nav .live-n.on{display:flex}
     </div>
     <div id="logOverlay" style="display:none;position:absolute;inset:0;background:var(--court-deep);z-index:20;flex-direction:column;overflow-y:auto;padding:14px 16px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div id="logTitle" style="color:var(--volt);font-size:15px;font-weight:900">📝 득점 기록</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="logBackBtn" onclick="onLogBack()" style="display:none;font-size:12px;font-weight:700;color:var(--volt);background:none;border:1.2px solid rgba(214,240,60,.5);border-radius:8px;cursor:pointer;font-family:inherit;padding:4px 10px">◀ 이전</button>
+          <div id="logTitle" style="color:var(--volt);font-size:15px;font-weight:900">📝 득점 기록</div>
+        </div>
         <button onclick="onLogSkip()" style="font-size:12px;font-weight:700;color:rgba(244,241,228,.6);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 8px">건너뛰기</button>
       </div>
       <div id="logTypeBar" style="font-size:11px;font-weight:700;color:rgba(244,241,228,.6);margin-bottom:10px"></div>
@@ -353,17 +359,9 @@ nav .live-n.on{display:flex}
       <button id="logSaveBtn" onclick="onLogSave()" disabled style="width:100%;padding:13px;border:none;border-radius:11px;background:var(--volt);color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;opacity:0.4;margin-bottom:14px">다음 (실점 기록) →</button>
     </div>
     <!-- 서브권 선택 오버레이 -->
-    <div id="serveSelectOverlay" style="display:none;position:absolute;inset:0;background:rgba(15,30,20,.95);z-index:25;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:14px">
-      <div style="color:var(--volt);font-size:15px;font-weight:900;text-align:center">⚡ 첫 서브권을 선택하세요</div>
-      <button onclick="chooseServe(1)" style="width:100%;padding:18px 16px;border:2px solid rgba(244,241,228,.3);border-radius:16px;background:transparent;cursor:pointer;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:rgba(244,241,228,.5);letter-spacing:.08em;margin-bottom:4px">위팀 서브</div>
-        <div id="serveNameTop" style="font-size:16px;font-weight:900;color:var(--line)">—</div>
-      </button>
-      <div style="color:rgba(244,241,228,.35);font-size:12px">vs</div>
-      <button onclick="chooseServe(0)" style="width:100%;padding:18px 16px;border:2px solid rgba(244,241,228,.3);border-radius:16px;background:transparent;cursor:pointer;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:rgba(244,241,228,.5);letter-spacing:.08em;margin-bottom:4px">아래팀 서브</div>
-        <div id="serveNameBot" style="font-size:16px;font-weight:900;color:var(--line)">—</div>
-      </button>
+    <div id="serveSelectOverlay" style="display:none;position:absolute;inset:0;background:rgba(15,30,20,.95);z-index:25;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:12px">
+      <div style="color:var(--volt);font-size:15px;font-weight:900;text-align:center">⚡ 첫 서브 선수를 선택하세요</div>
+      <div id="serveChooseGrid" style="width:100%;display:flex;flex-direction:column;gap:10px"></div>
     </div>
   </div>
 
@@ -429,6 +427,15 @@ nav .live-n.on{display:flex}
         <div id="editPanelPlayers" style="display:flex;gap:7px;margin-bottom:12px"></div>
         <div style="font-size:11px;font-weight:900;color:rgba(244,241,228,.55);margin-bottom:5px">샷 종류</div>
         <div id="editPanelShotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px"></div>
+        <!-- 실점 선수/샷 (선택) -->
+        <div style="height:1px;background:rgba(244,241,228,.15);margin:6px 0 10px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <div style="font-size:11px;font-weight:900;color:rgba(255,176,160,.75)">🔴 실점 선수 (상대팀)</div>
+          <button onclick="editClearLose()" style="font-size:10px;font-weight:700;color:rgba(244,241,228,.5);background:none;border:none;cursor:pointer;font-family:inherit">해제</button>
+        </div>
+        <div id="editPanelLosePlayers" style="display:flex;gap:7px;margin-bottom:10px"></div>
+        <div style="font-size:11px;font-weight:900;color:rgba(255,176,160,.75);margin-bottom:5px">실점 샷</div>
+        <div id="editPanelLoseShotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
           <span style="color:rgba(244,241,228,.7);font-size:12px;font-weight:700">구</span>
           <button onclick="editPanelShNo(-1)" style="width:30px;height:30px;border-radius:8px;border:1.2px solid rgba(244,241,228,.4);background:transparent;color:var(--line);font-size:16px;cursor:pointer">−</button>
@@ -502,6 +509,16 @@ nav .live-n.on{display:flex}
           <button onclick="closeMemEdit()" style="flex:1;padding:12px;border:1.5px solid #E3E4DA;border-radius:11px;background:transparent;color:var(--ink-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">취소</button>
           <button onclick="saveMemEdit()" style="flex:2;padding:12px;border:none;border-radius:11px;background:var(--court);color:var(--line);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">저장 ✓</button>
         </div>
+      </div>
+    </div>
+    <!-- 회원 상세 정보 오버레이 -->
+    <div id="memDetailOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,30,20,.85);z-index:50;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:var(--paper);border-radius:20px;padding:20px;width:100%;max-width:360px;margin:20px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div id="memDetailName" style="font-size:18px;font-weight:900">—</div>
+          <button onclick="closeMemDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft);line-height:1">✕</button>
+        </div>
+        <div id="memDetailBody"></div>
       </div>
     </div>
   </div>
@@ -826,10 +843,26 @@ function renderScore(){
   if(serveOv){
     if(V.serveChosen===false){
       serveOv.style.display='flex';
-      document.getElementById('serveNameTop').textContent=V.teams[1].join(' / ');
-      document.getElementById('serveNameBot').textContent=V.teams[0].join(' / ');
+      const grid=document.getElementById('serveChooseGrid');
+      let html='';
+      // 위팀 (team 1)
+      html+='<div style="font-size:10px;font-weight:700;color:rgba(244,241,228,.5);letter-spacing:.08em;margin-top:4px">위팀</div>';
+      V.teams[1].forEach((n,i)=>{
+        html+=`<button onclick="chooseServe(1,${i})" style="width:100%;padding:14px 16px;border:2px solid rgba(244,241,228,.3);border-radius:14px;background:transparent;cursor:pointer;color:var(--line);font-family:inherit;font-size:15px;font-weight:900">${n}</button>`;
+      });
+      html+='<div style="color:rgba(244,241,228,.35);font-size:11px;text-align:center;padding:2px">vs</div>';
+      html+='<div style="font-size:10px;font-weight:700;color:rgba(244,241,228,.5);letter-spacing:.08em">아래팀</div>';
+      V.teams[0].forEach((n,i)=>{
+        html+=`<button onclick="chooseServe(0,${i})" style="width:100%;padding:14px 16px;border:2px solid rgba(244,241,228,.3);border-radius:14px;background:transparent;cursor:pointer;color:var(--line);font-family:inherit;font-size:15px;font-weight:900">${n}</button>`;
+      });
+      grid.innerHTML=html;
     }else{serveOv.style.display='none';}
   }
+  // "서브 다시 선택" 버튼 - 0:0 이고 선택된 상태에서만
+  const rsBtn=document.getElementById('reServeBtn');
+  if(rsBtn)rsBtn.style.display=(V.serveChosen&&V.p[0]===0&&V.p[1]===0&&!V.over)?'inline-block':'none';
+  // 미니 통계 갱신
+  renderMiniStats();
 }
 
 /* ================= 기록 ================= */
@@ -1048,8 +1081,9 @@ function renderMembers(){
   document.getElementById('memCount').textContent=members.length+'명';
   const box=document.getElementById('memList');
   box.innerHTML=members.length?members.map((m,i)=>
-    `<div class="mem-row"><div class="avatar">${m.n[0]}</div>
-      <div class="nm">${m.n}<small>${m.a}</small></div>
+    `<div class="mem-row">
+      <div class="avatar" onclick="openMemDetail('${m.n.replace(/'/g,"\\'")}')" style="cursor:pointer">${m.n[0]}</div>
+      <div class="nm" onclick="openMemDetail('${m.n.replace(/'/g,"\\'")}')" style="cursor:pointer">${m.n}<small>${m.a}</small></div>
       <span class="badge ${clsG(m.g)}">${lblG(m.g)}</span>
       <button onclick="openMemEdit(${i})" style="background:none;border:1.5px solid #E3E4DA;border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;color:var(--ink-soft);font-family:inherit;font-weight:700;margin-right:4px">수정</button>
       <button class="del" onclick="delMember(${i})">✕</button></div>`).join('')
@@ -1078,6 +1112,52 @@ async function saveMemEdit(){
   await saveMembers(); renderMembers(); renderSetup();
   closeMemEdit();
 }
+function openMemDetail(name){
+  const m=members.find(x=>x.n===name);
+  document.getElementById('memDetailName').innerHTML=`${name} ${m?`<span class="badge ${clsG(m.g)}" style="margin-left:6px">${lblG(m.g)}</span>`:''}`;
+  // 집계
+  let matches=0, wins=0, losses=0, draws=0;
+  const partners={}, opponents={}, myShots={}, loseShots={};
+  records.forEach(r=>{
+    const inA=r.a.includes(name), inB=r.b.includes(name);
+    if(!inA&&!inB)return;
+    matches++;
+    const myTeam=inA?0:1, oppTeam=1-myTeam;
+    if(r.w===-1)draws++;
+    else if(r.w===myTeam)wins++;
+    else losses++;
+    (myTeam===0?r.a:r.b).forEach(n=>{if(n!==name)partners[n]=(partners[n]||0)+1;});
+    (myTeam===0?r.b:r.a).forEach(n=>{opponents[n]=(opponents[n]||0)+1;});
+    (r.plog||[]).forEach(p=>{
+      const scorer=(p.team===0?r.a:r.b)[p.player];
+      if(scorer===name&&p.shot)myShots[p.shot]=(myShots[p.shot]||0)+1;
+      if(p.losePlayer!=null){
+        const loser=(p.team===0?r.b:r.a)[p.losePlayer];
+        if(loser===name&&p.loseShot)loseShots[p.loseShot]=(loseShots[p.loseShot]||0)+1;
+      }
+    });
+  });
+  const winRate=matches?Math.round(wins/matches*100):0;
+  const topEntries=(obj,n=5)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);
+  const list=(entries,color)=>entries.length?entries.map(([k,v])=>`<span style="display:inline-block;padding:4px 10px;border-radius:14px;background:${color};font-size:12px;font-weight:700;margin:2px 4px 2px 0">${k} <b class="num">${v}</b></span>`).join(''):'<div style="font-size:12px;color:var(--ink-soft);opacity:.6">기록 없음</div>';
+  const shotList=entries=>entries.length?entries.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px"><span>${getShotName(k)}</span><b class="num">${v}회</b></div>`).join(''):'<div style="font-size:12px;color:var(--ink-soft);opacity:.6">기록 없음</div>';
+  document.getElementById('memDetailBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="text-align:center;padding:10px 4px;background:#F0F1E8;border-radius:10px"><div class="num" style="font-size:22px;font-weight:900;color:var(--court)">${matches}</div><div style="font-size:10px;color:var(--ink-soft);font-weight:700">경기</div></div>
+      <div style="text-align:center;padding:10px 4px;background:#F0F1E8;border-radius:10px"><div class="num" style="font-size:22px;font-weight:900;color:var(--court)">${winRate}%</div><div style="font-size:10px;color:var(--ink-soft);font-weight:700">승률</div></div>
+      <div style="text-align:center;padding:10px 4px;background:#F0F1E8;border-radius:10px"><div class="num" style="font-size:14px;font-weight:900;color:var(--ink)">${wins}·${losses}${draws?'·'+draws:''}</div><div style="font-size:10px;color:var(--ink-soft);font-weight:700">승·패${draws?'·무':''}</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:900;color:var(--court);margin:12px 0 6px">🤝 자주 함께한 파트너</div>
+    <div>${list(topEntries(partners),'#E8F5E4')}</div>
+    <div style="font-size:12px;font-weight:900;color:var(--court);margin:14px 0 6px">🎯 자주 만난 상대</div>
+    <div>${list(topEntries(opponents),'#F5E4E0')}</div>
+    <div style="font-size:12px;font-weight:900;color:var(--court);margin:14px 0 6px">🟢 득점 TOP 샷</div>
+    <div>${shotList(topEntries(myShots))}</div>
+    <div style="font-size:12px;font-weight:900;color:var(--red);margin:14px 0 6px">🔴 실점 TOP 샷</div>
+    <div>${shotList(topEntries(loseShots))}</div>`;
+  document.getElementById('memDetailOverlay').style.display='flex';
+}
+function closeMemDetail(){document.getElementById('memDetailOverlay').style.display='none';}
 
 function renderAll(){renderCourts();renderScore();renderRecords();renderDuo();renderMembers();renderRegChips();renderSetup();renderOpts();}
 
@@ -1103,10 +1183,50 @@ function manualCourtChange(){
   toast('🔄 코트 체인지!');
   renderScore(); renderCourts();
 }
-function chooseServe(team){
+function chooseServe(team, playerIdx){
   const V=cur(); if(!V)return;
   V.serveTeam=team; V.serveChosen=true;
+  // 첫 서브 선수를 pos[team][0]에 배치 (parity=0일 때 서브)
+  if(typeof playerIdx==='number'){
+    const other=1-playerIdx;
+    V.pos[team]=[playerIdx,other];
+  }
   renderScore();
+}
+function reChooseServe(){
+  const V=cur(); if(!V||V.over)return;
+  if(V.p[0]!==0||V.p[1]!==0)return;
+  V.serveChosen=false;
+  renderScore();
+}
+let miniStatsOpen=false;
+function toggleMiniStats(){
+  miniStatsOpen=!miniStatsOpen;
+  document.getElementById('miniStats').style.display=miniStatsOpen?'block':'none';
+  document.getElementById('msToggle').textContent=miniStatsOpen?'📊 통계 닫기':'📊 이번 게임 통계';
+  renderMiniStats();
+}
+function renderMiniStats(){
+  if(!miniStatsOpen)return;
+  const V=cur(); const box=document.getElementById('miniStats');
+  if(!V||!box)return;
+  const plog=(V.pointLog||[]).filter(p=>p.setNo===V.setNo);
+  if(!plog.length){box.innerHTML='<div style="opacity:.5;text-align:center">아직 기록이 없습니다</div>';return;}
+  const stats={};
+  const ensure=n=>{if(!stats[n])stats[n]={s:0,l:0};};
+  plog.forEach(p=>{
+    const scorer=V.teams[p.team][p.player];
+    if(scorer){ensure(scorer);stats[scorer].s++;}
+    if(p.losePlayer!=null){
+      const loser=V.teams[1-p.team][p.losePlayer];
+      if(loser){ensure(loser);stats[loser].l++;}
+    }
+  });
+  const rows=[...V.teams[1],...V.teams[0]].map(n=>{
+    const s=stats[n]||{s:0,l:0};
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0"><span style="font-weight:700">${n}</span><span style="font-family:'Archivo Black'">🟢 ${s.s} · 🔴 ${s.l}</span></div>`;
+  }).join('');
+  box.innerHTML=`<div style="font-size:10px;color:rgba(244,241,228,.5);margin-bottom:4px">${V.setNo}게임 · 득점/실점</div>${rows}`;
 }
 
 /* ---- 결과 직접 입력 ---- */
@@ -1196,7 +1316,7 @@ async function saveDirect(){
 /* ================= 샷 로그 ================= */
 let matchType='normal';
 let recFilter='all';
-let editState={recIdx:-1,ptIdx:-1,gameIdx:0,team:0,player:null,shot:null,shNo:1};
+let editState={recIdx:-1,ptIdx:-1,gameIdx:0,team:0,player:null,shot:null,shNo:1,losePlayer:null,loseShot:null};
 let selPlayer=null, duoTab='pair';
 let pendingPlayer=null;
 const SHOT_CATS=[
@@ -1273,6 +1393,8 @@ function renderLogOverlay(){
   const V=cur(); if(!V)return;
   const pl=document.getElementById('logPlayerLabel');
   const sb=document.getElementById('logSaveBtn');
+  const bb=document.getElementById('logBackBtn');
+  if(bb)bb.style.display=logPhase===2?'inline-block':'none';
   if(logPhase===1){
     document.getElementById('logTitle').textContent='📝 득점 기록';
     document.getElementById('logTypeBar').textContent='어떤 샷으로 득점했나요?';
@@ -1352,6 +1474,14 @@ function saveLoseLog(){
   logPhase=1; loseLogState={player:null,shot:null};
 }
 function onLogSave(){if(logPhase===1)saveLog();else saveLoseLog();}
+function onLogBack(){
+  const V=cur();
+  if(!V||logPhase!==2)return;
+  // 1단계 저장한 것 취소하여 1단계로 복귀
+  if(V.pointLog&&V.pointLog.length)V.pointLog.pop();
+  logPhase=1;
+  renderLogOverlay();
+}
 function onLogSkip(){document.getElementById('logOverlay').style.display='none';logPhase=1;loseLogState={player:null,shot:null};}
 function skipLog(){document.getElementById('logOverlay').style.display='none';logPhase=1;loseLogState={player:null,shot:null};}
 
@@ -1360,7 +1490,7 @@ function setRecFilter(v){recFilter=v;renderRecords();}
 
 /* ================= 기록 편집 오버레이 ================= */
 function openEditOverlay(recIdx, gameIdx=0){
-  editState={recIdx,ptIdx:-1,gameIdx,team:0,player:null,shot:null,shNo:1};
+  editState={recIdx,ptIdx:-1,gameIdx,team:0,player:null,shot:null,shNo:1,losePlayer:null,loseShot:null};
   const ov=document.getElementById('editOverlay');
   ov.style.display='flex';
   renderEditPointList();
@@ -1391,6 +1521,7 @@ function renderEditPointList(){
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:700;color:var(--line)">${teamLbl}${playerName?' · '+playerName:''}</div>
         <div style="font-size:11px;color:rgba(244,241,228,.45)">${hasDat?shotInfo+shStr:'미기록'}</div>
+        ${p&&p.losePlayer!=null&&p.loseShot?`<div style="font-size:10px;color:rgba(255,176,160,.75);margin-top:2px">↳ 실점: ${(p.team===0?r.b:r.a)[p.losePlayer]||''} · ${getShotName(p.loseShot)}</div>`:''}
       </div>
       <button onclick="openEditPanel(${pi})" style="padding:5px 10px;border-radius:8px;border:1.2px solid ${hasDat?'var(--volt)':'rgba(244,241,228,.3)'};background:transparent;color:${hasDat?'var(--volt)':'rgba(244,241,228,.5)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">${hasDat?'수정':'추가'}</button>
     </div>`;
@@ -1411,6 +1542,8 @@ function openEditPanel(ptIdx){
   editState.player=p?p.player:null;
   editState.shot=p?p.shot:null;
   editState.shNo=p?p.shNo:1;
+  editState.losePlayer=p&&p.losePlayer!=null?p.losePlayer:null;
+  editState.loseShot=p&&p.loseShot?p.loseShot:null;
   const panel=document.getElementById('editPointPanel');
   panel.style.display='flex';
   renderEditPanel(r);
@@ -1441,11 +1574,31 @@ function renderEditPanel(r){
     });
   });
   document.getElementById('editPanelShotGrid').innerHTML=shotHtml;
+  // 실점 선수 (상대팀)
+  const losePlayers=isBot?r.b:r.a;
+  document.getElementById('editPanelLosePlayers').innerHTML=losePlayers.map((n,i)=>{
+    const on=editState.losePlayer===i;
+    return `<button onclick="editSelLosePlayer(${i})" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${on?'var(--red)':'rgba(244,241,228,.3)'};background:${on?'rgba(224,91,75,.25)':'transparent'};color:${on?'#ffb0a0':'var(--line)'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">${n}</button>`;
+  }).join('');
+  let loseShotHtml='';
+  SHOT_CATS.forEach(cat=>{
+    const shots=SHOT_TYPES.filter(s=>s.cat===cat.id);
+    if(!shots.length)return;
+    loseShotHtml+=`<div style="grid-column:1/-1;font-size:9px;font-weight:900;color:rgba(255,176,160,.4);margin:4px 0 1px">${cat.n}</div>`;
+    shots.forEach(s=>{
+      const on=editState.loseShot===s.id;
+      loseShotHtml+=`<button onclick="editSelLoseShot('${s.id}')" style="padding:8px 2px;border-radius:8px;border:1.5px solid ${on?'var(--red)':'rgba(244,241,228,.3)'};background:${on?'rgba(224,91,75,.25)':'transparent'};color:${on?'#ffb0a0':'var(--line)'};font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;line-height:1.3;text-align:center;word-break:keep-all">${s.n}</button>`;
+    });
+  });
+  document.getElementById('editPanelLoseShotGrid').innerHTML=loseShotHtml;
   document.getElementById('editPanelShN').textContent=editState.shNo;
 }
-function editSetTeam(t){editState.team=t;editState.player=null;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
+function editSetTeam(t){editState.team=t;editState.player=null;editState.losePlayer=null;editState.loseShot=null;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
 function editSelPlayer(i){editState.player=i;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
 function editSelShot(id){editState.shot=id;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
+function editSelLosePlayer(i){editState.losePlayer=i;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
+function editSelLoseShot(id){editState.loseShot=id;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
+function editClearLose(){editState.losePlayer=null;editState.loseShot=null;const r=records[editState.recIdx];if(r)renderEditPanel(r);}
 function editPanelShNo(d){editState.shNo=Math.max(1,editState.shNo+d);document.getElementById('editPanelShN').textContent=editState.shNo;}
 function clearEditPoint(){
   const r=records[editState.recIdx];
@@ -1459,6 +1612,10 @@ async function saveEditPoint(){
   if(!r)return;
   if(!r.plog)r.plog=[];
   const entry={team:editState.team,player:editState.player,shot:editState.shot,shNo:editState.shNo,setNo:1,score:[0,0]};
+  if(editState.losePlayer!=null&&editState.loseShot){
+    entry.losePlayer=editState.losePlayer;
+    entry.loseShot=editState.loseShot;
+  }
   // 기존 포인트가 있으면 score/setNo 유지
   if(r.plog[editState.ptIdx]){
     entry.score=r.plog[editState.ptIdx].score||[0,0];
